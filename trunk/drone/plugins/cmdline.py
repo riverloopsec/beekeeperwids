@@ -18,7 +18,9 @@ CaptureObj = None
 
 def interrupt(signum, frame):
     global CaptureObj
-    CaptureObj.detask('TEST')
+    if CaptureObj is not None:
+        CaptureObj.shutdown()
+        #CaptureObj.detask('TEST')
 
 if __name__ == '__main__':
     # Command-line arguments
@@ -47,4 +49,5 @@ if __name__ == '__main__':
     sampleTaskData = {'callback':'localhost:8080',
                       'filters' :[] }
     CaptureObj.task('TEST', sampleTaskData)
+    print "Added the TEST task."
 

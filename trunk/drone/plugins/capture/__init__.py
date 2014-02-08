@@ -1,5 +1,6 @@
 # Plugin for drone to preform raw PCAP capture, with optional filters applied.
 
+import cPickle
 from multiprocessing import Pipe, Event, Manager
 
 from cap_filter_process import FilterProcess
@@ -14,8 +15,11 @@ class CapturePlugin(object):
         Check the status flag that this sets to see if initialization 
         was successful in the calling function.
         '''
-        manager = Manager()
-        self.tasks  = manager.dict() #dictionary is UUID: data
+        # Managers are a pain, so CapturePlugin keeps the master dictionary
+        # of tasking relavent to it, and sends updates of tasking to the
+        # FilterProcess which actually uses it whenever it gets an update.
+        self.tasks  = dict() #dictionary is UUID: data
+
         self.status = True
         if len(kblist) != 1 or 'channel' not in data:
             self.status = False
@@ -29,24 +33,27 @@ class CapturePlugin(object):
                 print("KillerBee instantiation failure: ({0}).".format(e))
                 self.status = False
         if self.status:
-            print "KillerBee instance to use is:", self.kb
+            print("KillerBee instance to use for CapturePlugin ch {0} is {1}".format(channel, self.kb))
 
-            # Pipe from the receiver to the filter module
+            # Pipe from the sniffer (receiver) to the filter module
             recv_pconn, recv_cconn = Pipe()
             # Create an event to signal when we want to shut down
             self.done_event = Event()
+
+            # Pipe from the tasker to the filter module, used to send pickled tasking dictionaries (simple DictManager)
+            task_pconn, self.task_cconn = Pipe()
             # Create an event to tell the filter to update it's tasking
             self.task_update_event = Event()
     
             # Start the filter up
-            self.p_filt = FilterProcess(recv_pconn, self.tasks, self.done_event, self.task_update_event)
+            self.p_filt = FilterProcess(recv_pconn, task_pconn, self.done_event, self.task_update_event)
             self.p_filt.start()
 
             # Start the receiver up
             self.p_recv = SnifferProcess(recv_cconn, self.kb, self.done_event)
             self.p_recv.start()
-            
-    def detask(self, uuid, data):
+
+    def detask(self, uuid):
         res = None
         if uuid in self.tasks:
             res = self.tasks.get(uuid)
@@ -55,13 +62,12 @@ class CapturePlugin(object):
             return False
         if len(self.tasks) == 0:
             # Time to shut the whole party down, as we don't have any more tasks
-            self.done_event.set()
-            self.p_recv.join()
-            self.p_filt.join()
+            print("Detask has found no remaining tasks, so we're shutting down.")
+            self.shutdown()
             #TODO return something to indicate a total shutdown also
         else:
-            # We made a change to tasking, let's commit it
-            self.task_update_event.set()
+            # We made a change to tasking, let's implement it
+            self.__update_filter_tasking()
         return res
 
     def task(self, uuid, data):
@@ -69,7 +75,7 @@ class CapturePlugin(object):
             # UUIDs should be unique... by their nature.
             return False
         self.tasks[uuid] = data
-        self.task_update_event.set()
+        self.__update_filter_tasking()
         return True
     
     def display(self, uuid):
@@ -78,3 +84,14 @@ class CapturePlugin(object):
         #TODO improve textual output
         return repr(self.tasks.get(uuid))
     
+    def shutdown(self):
+        self.done_event.set()
+        self.p_recv.join()
+        self.p_filt.join()
+        print "Shutdown call caused a join!"
+
+    def __update_filter_tasking(self):
+        print "Tasking added:", cPickle.dumps(self.tasks).encode('hex')
+        self.task_cconn.send(cPickle.dumps(self.tasks))
+        self.task_update_event.set()
+
