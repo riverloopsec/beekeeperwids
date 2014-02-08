@@ -4,6 +4,8 @@ the capturing of packets and passing them to the FilterProcess stage.
 rmspeers 2013 riverloopsecurity.com
 '''
 
+from multiprocessing import Process
+
 class SnifferProcess(Process):
     '''
     Takes the KillerBee instance which will be used for sniffing and receives
@@ -20,12 +22,12 @@ class SnifferProcess(Process):
         Start receiving and returning packets until the stopevent
         flag is set.
         '''
-        kb.sniffer_on()
+        self.kb.sniffer_on()
         while not self.stopevent.is_set():
-            recvpkt = kb.pnext() #nonbocking
+            recvpkt = self.kb.pnext() #nonbocking
             # Check for empty packet (timeout) and valid FCS
             if recvpkt is not None:# and recvpkt[1]:
                 print "SnifferProcess received frame."
                 self.pipe.send(recvpkt)
-        kb.sniffer_off()
+        self.kb.sniffer_off()
 

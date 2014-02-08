@@ -6,7 +6,7 @@ from cap_filter_process import FilterProcess
 from cap_sniffer_process import SnifferProcess
 
 class CapturePlugin(object):
-    def __init__(kblist, data):
+    def __init__(self, kblist, data):
         '''
         We are given a list of KillerBee() class objects for the interfaces
         we can use (in this case capture on), and a data object of other
@@ -20,7 +20,7 @@ class CapturePlugin(object):
         if len(kblist) != 1 or 'channel' not in data:
             self.status = False
         else:
-            self.channel = data.get('channel')
+            channel = data.get('channel')
             self.kb = kblist[0]
             try:
                 self.kb.set_channel(channel)
@@ -43,10 +43,10 @@ class CapturePlugin(object):
             self.p_filt.start()
 
             # Start the receiver up
-            self.p_recv = SnifferProcess(recv_cconn, kb, self.done_event)
+            self.p_recv = SnifferProcess(recv_cconn, self.kb, self.done_event)
             self.p_recv.start()
             
-    def detask(uuid, data):
+    def detask(self, uuid, data):
         res = None
         if uuid in self.tasks:
             res = self.tasks.get(uuid)
@@ -64,7 +64,7 @@ class CapturePlugin(object):
             self.task_update_event.set()
         return res
 
-    def task(uuid, data):
+    def task(self, uuid, data):
         if uuid in self.tasks:
             # UUIDs should be unique... by their nature.
             return False
@@ -72,7 +72,7 @@ class CapturePlugin(object):
         self.task_update_event.set()
         return True
     
-    def display(uuid):
+    def display(self, uuid):
         if uuid not in self.tasks:
             return "{0} was not found in tasking.".format(uuid)
         #TODO improve textual output
