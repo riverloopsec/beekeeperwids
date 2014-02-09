@@ -5,53 +5,52 @@ import os
 import sys
 import time
 import argparse
+import subprocess
 sys.path.append("../") # temporary hack during development
-from drone import DroneClient, DroneTask
+from drone import DroneClient, DroneTask, DroneDaemon
 
 class CLI:
 
 	def __init__(self):
 		parser = argparse.ArgumentParser()
+
+
+		parser.add_argument('-I', '--drone-id', '--id', action='store', dest='drone_id', default='0')
+		parser.add_argument('-S', '--start-drone', '--start', action='store_true', dest="start")
+		parser.add_argument('-K', '--kill-drone', '--kill', action='store_true', dest="kill")
+		parser.add_argument('-R', '--restart-drone', '--restart', action='store_true', dest='restart')
+
+		parser.add_argument('--test', action='store_true')
+
+		'''
 		parser.add_argument('-f', '--find-local', action='store_true')
 		parser.add_argument('-m', '--monitor', action='store_true')
 		parser.add_argument('-d', '--debug', action='store_true')
-		parser.add_argument('-q', '--id', action='store')
 		parser.add_argument('-l', '--list-drones', '--list', action='store_true')
-		parser.add_argument('-r', '--start-drone', '--start', action='store_true')
-		parser.add_argument('-c', '--stop-drone', '--stop',  action='store_true')
-		parser.add_argument('-k', '--kill-drone', '--kill', action='store_true')
+		parser.add_argument('-S', '--start-drone', '--start', action='store_true')
+		parser.add_argument('-K', '--kill-drone', '--kill', action='store_true')
+		parser.add_argument('-F', '--forcekill-drone', '--forcekill', action='store_true')
 		parser.add_argument('-e', '--enumerate', action='store_true')	
 		parser.add_argument('-s', '--status', action='store_true', dest='status')
 		parser.add_argument('-i', '--interface', action='store')
 		parser.add_argument('-a', '--address', action='store', default='127.0.0.1')
 		parser.add_argument('-p', '--port', action='store', default=9999)
 		parser.add_argument('-j', '--join', action='store_true')
-		#parser.add_argument('-P', '--plugins', actions='store_true')
-		#parser.add_argument('--show', action='store')
+		parser.add_argument('-P', '--plugins', actions='store_true')
+		parser.add_argument('--show', action='store')
+		'''	
+
+
 		args = parser.parse_args()
-
-		if args.id == None:
-			if 'droneid' in os.environ.keys():
-				args.id = os.environ['droneid']
-			else:
-				args.id = 0
-
-		if args.monitor:
-			self.monitor(args)
-		if args.list_drones:
-			self.listDaemons(args)
-		if args.start_drone:
-			self.startDaemon(args)
-		if args.stop_drone:
-			self.stopDaemon(args)
-		if args.kill_drone:
+		if args.start:
+			self.startDrone(args)
+		if args.test:
+			self.test()
+		if args.kill:
 			self.killDaemon(args)
-		if args.enumerate:
-			self.enumerateInterfaces(args)
-		if args.status:
-			self.showStatus(args)
 		else:
 			self.printUsage()
+
 
 	def printUsage(self):
 		print("you are using it wrong...")
@@ -178,7 +177,7 @@ class CLI:
 	def ui_header(self, msg):
 		l = 15
 		print("="*l)
-		print(msg)
+		tarint(msg)
 		print("="*l)
 
 
@@ -211,16 +210,18 @@ class CLI:
 	
 
 
-	def startDaemon(self, args):
-		if args.id == None:
-			print("\n[!] Please specify the daemon to start")
-			print("\n\tExample: zbdrone --start-daemon --id 'drone0'\n")
-		else:
-			drone_id = args.id
-			print("\n[+] Starting new drone daemon: {0}".format(drone_id))
-			cmd = './droned --droneid {0}'.format(drone_id)
-			DEVNULL = open(os.devnull, 'wb')
-			subprocess.Popen(cmd.split(), stdout=DEVNULL, stderr=DEVNULL)
+	def startDrone(self, args):
+		drone_id = args.drone_id
+		d = DroneDaemon(drone_id)
+		d.startDaemon()
+
+	def startDroneBackground(self, args):
+		drone_id = args.drone_id
+		print("\n[+] Starting new drone daemon: {0}".format(drone_id))
+		cmd = './droned --droneid {0}'.format(drone_id)
+		DEVNULL = open(os.devnull, 'wb')
+		subprocess.Popen(cmd.split(), stdout=DEVNULL, stderr=DEVNULL)
+		
 
 	def stopDaemon(self, args):
 		if args.id == None:
@@ -232,16 +233,12 @@ class CLI:
 			client.stopDaemon()
 
 	def killDaemon(self, args):
-		if args.id == None:
-			print("\n[!] Please specify the daemon to kill")
-			print("\n\tExample: zbdrone --kill-daemon --id 'drone0'\n")
-		else:
-			drone_id = args.id
-			print("\n[+] Killing drone daemon: {0}".format(drone_id))
-			runfile = '/var/run/drone.{0}'.format(drone_id)
-			pid = open(runfile).read().split()[0].split('=')[1]
-			os.remove(runfile)
-			os.system('kill {0}'.format(pid))
+		drone_id = args.drone_id
+		print("\n[+] Killing drone daemon: {0}".format(drone_id))
+		runfile = '/var/run/drone.{0}'.format(drone_id)
+		pid = open(runfile).read().split()[0].split('=')[1]
+		os.remove(runfile)
+		os.system('kill {0}'.format(pid))
 
 	
 	def showInterface(self, index):
@@ -256,6 +253,10 @@ class CLI:
 		interfaces = client.enumerateInterfaces()
 		print(interfaces)
 	
+
+	def test(self):
+		c = DroneClient()
+		c.makeHTTPCall()
 
 
 class DroneMonitor:
@@ -329,4 +330,7 @@ class DroneMonitor:
 			print(event)
 
 
-CLI()
+
+if __name__ == '__main__':
+	CLI()
+

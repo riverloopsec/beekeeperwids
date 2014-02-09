@@ -6,7 +6,7 @@ import plugins
 import flask	
 import argparse
 import os
-import urllib2
+import urllib2, urllib
 import threading
 import time
 import socket
@@ -160,12 +160,47 @@ class DroneClient:
 
 	def getInterfaces(self):
 		return self.makeRESTCall('/interfaces')
+
+	
 		
 	def enumerateInterfaces(self):
 		return self.makeRESTCall('/interfaces/enumerate')
 
 	def stopDaemon(self):
 		return self.makeRESTCall('/daemon/stop')
+
+
+	def getPlugins(self):
+		'''
+		determine which plugins the drone has to verify if an app's dependencies are met
+		'''
+	
+	def taskCapture(self, uuid, parameters):
+		#task drone to capture packets
+		required_plugins = ['capture']
+		method = 'POST'
+		content = 'application/json'
+		headers = { 'Content-Type' : 'application/json' }
+		data = {'channel' : 11, 'callback' : 'http:localhost:7777'}
+	
+		
+	def makeHTTPCall(self, resource=None, parameters=None):
+
+		resource = '/tasks/capture/123456/11/task'
+		parameters = {'channel':11, 'callback':'http://127.0.0.1:8888/data', 'filter':{}}
+
+		#make a string to hold the url of the request
+		url = "http://{0}:{1}{2}".format(self.serverAddress, self.serverPort, resource)
+		http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'DroneClient'}
+		post_data_json = json.dumps(parameters)
+		request_object = urllib2.Request(url, post_data_json, http_headers)
+
+		response = urllib2.urlopen(request_object)
+
+		#store request response in a string
+		html_string = response.read()
+
+
 
 	def makeRESTCall(self, path):
 		try:
@@ -193,7 +228,6 @@ class DroneTask:
 		self.interface = interface
 		self.state = 'running'
 		self.instance = instance
-
 
 
 
