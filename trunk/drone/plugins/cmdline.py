@@ -47,7 +47,7 @@ if __name__ == '__main__':
     
     # Put some tasking in here
     sampleTaskData = {'callback':'localhost:8080',
-                      'filters' :[] }
+                      'filter'  :{} }
     CaptureObj.task('TEST', sampleTaskData)
     print "Added the TEST task."
 
