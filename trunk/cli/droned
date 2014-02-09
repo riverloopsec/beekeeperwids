@@ -1,0 +1,13 @@
+#!/usr/bin/python
+import argparse
+import sys
+sys.path.append("../") # temporary hack during development
+from drone import DroneDaemon
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--droneid', action='store', default='0')
+parser.add_argument('--address', action='store', default='127.0.0.1')
+parser.add_argument('--port', action='store', default=9999)
+args = parser.parse_args()
+daemon = DroneDaemon(args.droneid, args.address, int(args.port))
+daemon.startDaemon()
