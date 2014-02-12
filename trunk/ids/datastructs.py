@@ -14,13 +14,10 @@ from sqlalchemy.orm import relationship, sessionmaker
 #from sqlalchemy import create_engine
 Base = declarative_base()
 
-class WIDSManager:
-	# this class provides the management logic for the app including:
-	# -drone tasking
-	# -database management
-	# -data listener server
-	# -rule engine
-	# -process management (analytic plugins)
+class KillerbeeWIDS:
+	# this class provides the management logic for the app. it manages the external server process
+	# and implements the analytic & eventing modules
+
 	def __init__(self, config=None):
 		self.packetDatabase = None
 		self.eventDatabase = None
@@ -37,7 +34,6 @@ class WIDSManager:
 		pass
 
 	def launchProcesses(self):
-		# launch rule engine, analytic plugins, data listener
 		pass
 
 
