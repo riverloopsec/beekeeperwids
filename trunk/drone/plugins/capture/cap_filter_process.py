@@ -60,6 +60,12 @@ class FilterProcess(Process):
                         (mask, val) = filt['fcf']
                         if (unpack('>H', pkt[0:2])[0] & mask) != val:
                             continue
+                    if 'byteoffset' in filt:
+                        (offset, mask, val) = filt['byteoffset']
+                        if offset >= len(pkt['bytes']):
+                            continue
+                        if (unpack('>H', pkt[offset])[0] & mask) != val:
+                            continue
                     # The cases of:
                     # (a) no conditions, aka send all packets, and
                     # (b) unknown condition we don't have coded for

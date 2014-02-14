@@ -19,6 +19,14 @@ bp = {get_uuid():
           }
      }}
 
+# Command frames, command ID = 0x07 (Beacon Request)
+br = {'callback': 'localhost:8080/app/beconreq/',
+      'filter'  : {
+         'fcf': (0x0300, 0x0300),
+         'byteoffset': (7, 0xff, 0x07)
+      }
+     }
+
 # Frames of length 100 to 104
 lp = {get_uuid():
         {'callback': 'localhost:8080/app/heartbeats/',
