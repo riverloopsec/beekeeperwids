@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+
+
+<setting key='appname' value='dev-app-v0.1'/>
+<setting key='database' value='dev-app-v0.1.db' />
+<setting key='logfile' value='dev-logfile.log' />
+
+<plugin name='BandwidthMonitor' module='bandwidth' >
+	<parameter key='threshold' value='100000'/>
+	</plugin>
+
+
+<rule name='Rule-Test-1'/>
+
+
+</config>

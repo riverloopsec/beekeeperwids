@@ -1,18 +1,47 @@
 #!/usr/bin/python
 
-'''
-This app is intended to monitor a network for specific packets. When a packet meeting a specific filter is detected,
-and event alert is generated
-'''
 
-import flask, json
-import os, sys
-from multiprocessing import Pipe, Event, Manager
-from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-#from sqlalchemy import create_engine
-Base = declarative_base()
+import logging
+import flask
+import json
+import os
+import sys
+import xml.etree.ElementTree as ET
+from multiprocessing import Pipe, Event, Manager, Lock
+from data_receiver import DataReceiverProcess
+from database import DatabaseHandler
+from utils.logger import Logger
+from drone import DroneClient
+import signal
+import time
+
+class WIDSConfig:
+
+	def __init__(self, configfile):
+		self.settings = {}
+		self.plugins = []
+		self.rules = []
+		self.drones = []
+		self.readConfig(configfile)
+
+	def readConfig(self, configfile):
+		root = ET.parse(configfile).getroot()
+		for settingElement in root.findall('setting'):
+			key = settingElement.get('key')
+			value = settingElement.get('value')
+			self.settings[key] = value
+		for pluginElement in root.findall('plugin'):
+			plugin = {}
+			plugin['module'] = pluginElement.get('module')
+			plugin['name'] = pluginElement.get('name')
+			parameters = {}
+			for parameterElement in pluginElement.findall('parameter'):
+				parameters[parameterElement.get('key')] = parameterElement.get('value')
+			plugin['parameters'] = parameters
+			self.plugins.append(plugin)
+		for ruleElement in root.findall('rule'):
+			pass
+
 
 class WIDSManager:
 	# this class provides the management logic for the app including:
@@ -21,115 +50,91 @@ class WIDSManager:
 	# -data listener server
 	# -rule engine
 	# -process management (analytic plugins)
-	def __init__(self, config=None):
-		self.packetDatabase = None
-		self.eventDatabase = None
-		self.networkDatabase = None
-		self.dbHandler = DatabaseHandler()
-		self.analytic_plugins = []
-		self.loadAnalyticPlugins()
-		self.launchProcesses()
 
-	def readConfig(self, config):
-		pass
-
-	def loadAnalyticPlugins()
-		pass
-
-	def launchProcesses(self):
-		# launch rule engine, analytic plugins, data listener
-		pass
+	def __init__(self, configfile):
+		self.config = WIDSConfig(configfile)
+		self.logger = Logger(self.config.settings.get('logfile'))
+		self.database = DatabaseHandler(self.config.settings.get('database'))
+		self.plugins = []
+		self.drones = []
+		self.processes = []
+		self.startWIDS()
 
 
-class Packet(Base):
-	__tablename__ = 'packet'
-	id = Column(Integer, primary_key=True)
-	source = Column(String(250))
-	datetime = Column(String(250))
-	dbm = Column(String(250))
-	rssi = Column(String(250))
-	validcrc = Column(String(250))
+	def startWIDS(self):
+		self.logger.entry("WIDSManager", "Starting WIDS")
+		f = open('/tmp/kbwids.0', 'w')
+		f.write('1')
+		f.close()
+		#self.loadPlugins()
+		self.startProcesses()
+		self.monitorMessages()
 
-	def __init__(self, pktdata):
-		print(pktdata)
-		self.source = pktdata.get('location')
-		self.datetime = pktdata.get('datetime')
-                self.dbm = pktdata['dbm']
-                #self.bytes = data['bytes']
-                self.rssi = pktdata['rssi']
-                self.validcrc = pktdata['validcrc']
+	def stopWIDS(self):
+		self.logger.entry("WIDSManager", "Stopping WIDS")
+		#self.shutdown = True
+		self.stopProcesses()
 
+	def loadPlugins(self):
+		# TODO: add error handling for plugins that don't exist
+		self.logger.entry('WIDSManager', 'Loading Plugins')
+		for plugin in self.config.plugins:
+			module = plugin.get('module')
+			name = plugin.get('name')
+			m = __import__('ids.plugins.{0}'.format(module), fromlist=[name])
+			plugin['class'] = getattr(m, name)
+			plugin['process'] = None
+			self.plugins.append(plugin)
 
-class DatabaseHandler:
-	# the database is implemeneted in SQLAlhemy to facilitate packet lookups
-	# this allows complex object-level queries without dealing with SQL 
-	# this class should probably be a part of the BaseApp class
-	def __init__(self, database='sqlalchemy_monitor.db'):
-		print("Initializing DatabaseHandler")
-		self.engine = create_engine("sqlite:///{0}".format(database), echo=True)
-		if not os.path.isfile(database):
-			self.createDB()
-		self.session = sessionmaker(bind=self.engine)()
-	def createDB(self):
-		Base.metadata.create_all(self.engine)
-	def storePacket(self, pktdata):
-		self.session.add(Packet(pktdata))
-		self.session.commit()
-	def getPackets(self, pktfilter=None, maxcount=None):
-		results = self.session.query(Packet).all()
-		return results
-	def checkNewPackets(self):
-		return True
+	def startProcesses(self):
+		
+		self.logger.entry("WIDSManager", "Starting DataReceiver Process")
+		process = DataReceiverProcess(None, None, {'port':8888})
+		
+		process.start()
+		self.processes.append(process)
 
+		return
+		print("loading plugins")
+		for plugin in self.plugins:
+			self.logger.entry("WIDSManager", "Starting {0} Plugin".format(plugin.get('name')))
+			pluginClass = plugin.get('class')
+			pluginParameters = plugin.get('parameters')
+			pluginProcess = pluginClass(self.database, self.logger, pluginParameters)
+			pluginProcess.start()
+			plugin['process'] = pluginProcess
 
+	def stopProcesses(self):
+		print("waiting for processes to finish")
+		for process in self.processes:
+			print(process)
+			process.terminate()
+			process.join()
+			print("process terminated")
+		self.shutdown = True
+		self.logger.entry("WIDSManager", "Child Processes Terminated")
 
-class DataListener(Process):
-	# this class is intended to run an an independent process that will receive and store packets
-	# the packets are received by a flask web server and stored in an SQLAlchemy database
-	def __init__(self):
-		self.dbHandler = DatabaseHandler()
-		self.port = 8888
-		self.startServer()
-	def startServer(self):
-		app = flask.Flask(__name__)
-		app.add_url_rule('/data', None, self.recvData, methods=['POST'])
-		app.run(debug=True, port=self.port)
-	def stopServer(self):
-		pass
-	def recvData(self):
-		data = json.loads(flask.request.data)
-		uuid = data['uuid']
-		packet = data['pkt']
-		#packet.display()
-		self.dbHandler 
-		self.dbHandler.storePacket(packet)
-		return 'DATA RECEIVED'
+	def checkRunFile(self):
+		f = open('/tmp/kbwids.0', 'r')
+		run = f.read()
+		f.close()
+		if run == '0':
+			return False
+		else:
+			return True
 
+	def monitorMessages(self):
+		while self.checkRunFile():
+			time.sleep(4)
+			print("WIDSManager : {0}".format(os.getpid()))
+		self.stopWIDS()
 
-class AnalyticPluginPacketCount(Process):
-	# this sample plugin counts how many packets have been collected and prints it to screen
-
-	def __init__(self, dbHandler):
-		self.dbHandler = dbHandler
-		self.run()
-
-	def run(self):
-		# check if new packets are present
-		if len(self.dbHandler.getPackets()) > 20:
-			print("Received more than 20 packets!!!")
-
-
-class RuleEngine:
-	# the rule engine will load rules, evaluate the conditions, and executing events
-	
-	def __init__(self):
-		pass
-
-	def loadRules(self):
+	def taskDrone(self, drone, taskdata):
 		pass
 
 
 
-if __name__ == '__main__':
-	MonitorApp(config='testconfig.conf')
+
+
+
 
