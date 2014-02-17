@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-
-import os, sys
+import os
+import sys
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -17,6 +17,11 @@ class Message(Base):
 	__tablename__ = 'message'
 	id = Column(Integer, primary_key=True)
 
+	def __init__(self, msgdata):
+		self.src = msgdata.get('src')
+		self.dst = msgdata.get('dst')
+		self.code = msgdata.get('code')
+		self.parameters = msgdata.get('parameters')
 
 
 class Packet(Base):
@@ -33,10 +38,11 @@ class Packet(Base):
 		self.source = pktdata.get('location')
 		self.datetime = pktdata.get('datetime')
                 self.dbm = pktdata['dbm']
-                #self.bytes = data['bytes']
+                self.bytes = data['bytes']
                 self.rssi = pktdata['rssi']
                 self.validcrc = pktdata['validcrc']
-
+		self.size = len(self.bytes)
+		
 
 class DatabaseHandler:
 	# the database is implemeneted in SQLAlhemy to facilitate packet lookups

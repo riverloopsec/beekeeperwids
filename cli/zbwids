@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+import sys
+import argparse
+from killerbeewids.trunk.wids import WIDSManager
+from killerbeewids.trunk.utils import RunFile
+
+
+
+def startWIDSManager():
+	print("Starting WIDSManager")
+	WIDSManager('dev.xml')
+
+def stopWIDSManager():
+	print("Stoping WIDSManager")
+	RunFile('/home/dev/etc/kbwids/app1.run').unset()
+
+
+def usage():
+	print("you are using it wrong...")
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--start', action='store_true', dest="start")
+	parser.add_argument('-k', '--kill', action='store_true', dest="kill")
+	parser.add_argument('-r', '--restart', action='store_true', dest='restart')
+	args = parser.parse_args()
+	if args.start:
+		startWIDSManager()
+	elif args.kill:
+		stopWIDSManager()
+	elif args.restart:
+		stopWIDSManager()
+		startWIDSManager()
+	else:
+		usage()
