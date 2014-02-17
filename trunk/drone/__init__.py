@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import sys
-from killerbee import kbutils,KillerBee
 import plugins
 import flask	
 import argparse
@@ -13,221 +12,210 @@ import socket
 import subprocess
 import random
 import json
-
-class Logger:
-
-	def __init__(self, droneContext):
-		self.events = []
-		self.output = False
-		self.drone_id = droneContext.drone_id
-		self.logfile = open('/var/log/kbdrone.{0}.log'.format(self.drone_id), 'w')
-		self.add('Initializing log file')
-		
-	def add(self, msg):
-		d = time.strftime("%Y-%m-%d %H:%M:%S")
-		entry = '{0} - {1}'.format(d, msg)
-		self.logfile.write(entry + '\n')
-		self.logfile.flush()
-		self.events.append(entry)
-		if self.output: print(entry)
+import signal
+from uuid import uuid4 as generateUUID
+from killerbee import kbutils
+from killerbeewids.trunk.utils import KBLogUtil, KBInterface, getPlugin
 
 
 class DroneDaemon:
 
-	def __init__(self, drone_id, address='127.0.0.1', port=9999, debug=True):
-		self.debug = debug
+	def __init__(self, drone_id, port):
+		signal.signal(signal.SIGINT, self.SIGINT)
 		self.drone_id = drone_id
-		self.run_file = '/var/run/kbdrone.{0}'.format(self.drone_id)
 		self.port = port
-		self.logger = Logger(self)
-		self.daemon_stop = False
-		self.interfaces = []
-		self.tasks = []
+		self.name = 'kbdrone.{0}'.format(self.drone_id)
+		self.drone = 'kbdrone.{0}'.format(self.drone_id)
+		self.desc = 'DroneDaemon'
+		self.logutil = KBLogUtil(self.name)
+		self.interfaces = {}
+		self.plugins = {}
+		self.pid = os.getpid()
+
+	def SIGINT(self, s, f):
+		#TODO find a cleaner way to do only handle signals from the parent process ?
+		if self.pid == os.getpid():
+			self.logutil.log(self.desc, "SIGINT", self.pid)
+			signal.signal(signal.SIGINT, signal.SIG_IGN)
+			self.shutdown = True
+			self.shutdownDaemon()
 
 	def runChecks(self):
-		# check if port is already bound
 		try:		
 			s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			s.bind(('127.0.0.1', self.port))
 			s.close()
 		except socket.error:
-			print("socket already bound, aborting drone start...")
+			print("Error Starting Drone:")
+			print("Socket TCP {0} already bound".format(self.port))
 			sys.exit()
-		# check if drone name is already taken & running
-		if os.path.isfile(self.run_file):
-			print("run file for drone already exists, aborting drone start...")
+		if self.logutil.checkRunFile():
+			pid = self.runfile.pid()
+			print("Error Starting Drone:")
+			print("Run file for drone already exists: {0}".format(self.runfile.runfile))
+			print("Please ensure process: {0} is not running, and remove files manually".format(pid))
 			sys.exit()
 
 	def startDaemon(self):
-		#self.runChecks()
-		self.logger.add('Starting Drone Daemon: {0}'.format(self.drone_id))
-		self.logger.add('Writing Run File')
-		f = open(self.run_file, 'w')
-		f.write('PID={0}\n'.format((os.getpid())))
-		f.write('PORT={0}\n'.format(self.port))
-		f.close()			
+		self.runChecks()
+		self.logutil.logline()
+		self.logutil.log(self.desc, "Starting DroneDaemon", self.pid)
 		self.enumerateInterfaces()
-		self.loadPlugins()
-		self.rest_startServer()
+		self.startRestServer()
 
-	def stopDaemon(self):
-		self.logger.add('Stopping DroneDaemon: {0}'.format(self.drone_id))
-		self.daemon_stop = True
-		self.thread_TaskManager.join()
-		os.remove(self.run_file)
+	def shutdownDaemon(self):
+		self.logutil.log(self.desc, 'Initiating shutdown', self.pid)
+		self.stopRunningPlugins()
+		self.logutil.log(self.desc, 'Completed shutdown', self.pid)
+		self.logutil.endlog()
+		# TODO: verify that all subprocess have been terminated
 		sys.exit()
 
-	def rest_startServer(self):
-		app = flask.Flask(__name__)
-		app.add_url_rule('/tasks/<plugin>/<uuid>/<channel>/task', None, self.taskPlugin, methods=['POST'])
-		app.add_url_rule('/tasks/<plugin>/<uuid>/<channel>/detask', None, self.detaskPlugin, methods=['POST'])
-		app.add_url_rule('/test', None, self.test, methods=['GET'])
-		app.add_url_rule('/status', None, self.getStatus, methods=['GET'])
-		app.run(debug=True, port=self.port)
+	def processShutdownRequest(self):
+		pass
 
-	def loadPlugins(self):
-		self.logger.add('Loading Plugins'.format(self.drone_id))
-		self.pluginStore = {'capture' : plugins.capture.CapturePlugin}
+	def startRestServer(self):
+		self.logutil.log(self.desc, 'Starting REST Server: http://127.0.0.1:{0}'.format(self.port), self.pid)
+		app = flask.Flask(__name__)
+		app.add_url_rule('/shutdown', None, self.shutdownDaemon, methods=['POST'])
+		app.add_url_rule('/task', None, self.processTaskRequest, methods=['POST'])
+		app.add_url_rule('/detask', None, self.processDetaskRequest, methods=['POST'])
+		app.add_url_rule('/status', None, self.status, methods=['POST'])
+		app.run(port=self.port)
+
+	def processTaskRequest(self):
+		data = json.loads(flask.request.data)
+		uuid = data.get('uuid')
+		pluginName = data.get('plugin')
+		pluginShortName = pluginName.split('.')[-1]
+		channel = data.get('channel')
+		parameters = data.get('parameters')
+		self.logutil.log(self.desc, 'Processing Task Request: {0} ({1})'.format(uuid, pluginShortName), self.pid)
+		self.taskPlugin(pluginName, channel, uuid, parameters)
+		return "PROCESSED REQUEST\n"
+		#return "UNABLE TO PROCESS REQUEST: NO AVAILABLE INTERFACES"
+
+	def taskPlugin(self, pluginName, channel, uuid, parameters):
+		# if plugin is not already active on specified channel, start new one
+		pluginShortName = pluginName.split('.')[-1]
+		plugin = self.plugins.get((pluginShortName, channel), None)
+		if plugin == None:
+			self.logutil.log(self.desc, 'Starting New Plugin: ({0}, ch.{1})'.format(pluginShortName, channel), self.pid)
+			# TODO right exception handler for no available interfaces
+			interface = self.getAvailableInterface()
+			pluginClass = getPlugin(pluginName)
+			plugin = pluginClass([interface], channel, self.drone)
+			self.plugins[(pluginShortName, channel)] = plugin
+		# task the plugin
+		self.logutil.log(self.desc, 'Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid), self.pid)
+		plugin.task(uuid, parameters)
+
+	def processDetaskRequest(self):
+		data = json.loads(flask.request.data)
+		uuid = data.get('uuid')
+		return self.detaskPlugin(uuid)
+
+	def detaskPlugin(self, uuid):
+		self.logutil.log(self.desc, 'Processing Detask Request for {0}'.format(uuid), self.pid)
+		for pluginKey,pluginObject in self.plugins.items():
+			for task_uuid in pluginObject.tasks.keys():
+				if task_uuid == uuid:
+					pluginObject.detask(uuid)
+					time.sleep(4)
+					if pluginObject.active == False:
+						del(self.plugins[pluginKey])
+						self.logutil.log(self.desc, 'Succesfully detasked {0} from {1}'.format(uuid, str(pluginObject.desc)), self.pid)
+						return "SUCCESS: DETASKED {0}\n".format(uuid)
+					else:
+						return "FAILURE: COULD NOT DETASK {0}".format(uuid)
+		return "FAILURE: COULD NOT FIND TASK {0}\n".format(uuid)
+
+	def stopRunningPlugins(self):
+		self.logutil.log(self.desc, 'Stopping Running Plugins', self.pid)
+		for plugin in self.plugins.values():
+			if plugin.active == True:
+				self.logutil.log(self.desc, "Stopping Plugin: {0}".format(plugin.desc), self.pid)
+				plugin.shutdown()
+				if plugin.active:
+					print("had a problem shutting down plugin")
+		self.logutil.log(self.desc, 'Running plugins have been terminated', self.pid)
+
+	def getAvailableInterface(self):
+		for interface in self.interfaces.values():
+			if not interface.active:
+				return interface
+		return None
 
 	def enumerateInterfaces(self):
-		self.interfaces.append(KillerBee('/dev/ttyUSB0'))
-		return
-		'''
+		self.logutil.log(self.desc, "Enumerating Interfaces", self.pid)
 		for interface in kbutils.devlist():
 			device = interface[0]
 			description = interface[1]
-			self.interfaces.append(Interface(device))
-		'''
+			self.logutil.log(self.desc, "Added new interface: {0}".format(device), self.pid)
+			self.interfaces[device] = KBInterface(device)
 
-	def getAvailableInterface(self):
-		return self.interfaces[0]
-
-
-	'''
-	curl http://127.0.0.1:9999/tasks/capture/00112233/11/task -X POST -H "Content-Type: application/json" -d '{"channel":"1"}'
-	'''
-
-	def taskPlugin(self, plugin=None, uuid=None, channel=None):
-		interface = self.getAvailableInterface()
-		parameters = json.loads(flask.request.data)
-		if channel == None:
-			return "Missing Parameter: 'channel'"
-
-		pluginInstance = self.pluginStore.get(plugin)([interface], parameters)
-		if not pluginInstance.status:
-			return "could not instantiate pluginInstance"
-		pluginInstance.task(uuid, parameters)		
-	
-		task = DroneTask(uuid, plugin, channel, parameters, interface, pluginInstance)
-		#self.tasks[str(uuid)] = task
-		return "successfully started task: {0}".format(uuid)
-
-	def detaskPlugin(self):
-		return
-
-	def test(self):
-		print(self.app)
-		print(flask.request.form)
-		print(flask.request.args)
-		print(flask.request.values)
-		print(flask.request.data)
-		return '\nstatus: running\n\n'
-
-	def getStatus(self):
-		#self.populateStatus()
+	def status(self):
 		status = {}
 		status['config'] = {}
-		status['config']['pid'] = os.getpid()
-		status['config']['id'] = self.drone_id
-		status['interfaces'] = {i.serialize().get('device') : i.serialize() for i in self.interfaces.values()}
-		status['tasks_running'] = {t.serialize().get('id') : t.serialize() for t in self.tasks_running.values()}
-		status['tasks_completed'] = {t.serialize().get('id') : t.serialize() for t in self.tasks_completed.values()}
-		status['event_logs'] = '\n'.join(self.logger.events[-5:])
-		print(status)
-		return status
-
+		status['config']['pid'] = self.pid
+		status['config']['name'] = self.name
+		status['interfaces'] = list((interface.info() for interface in self.interfaces.values()))
+		status['plugins'] = list((plugin.info() for plugin in self.plugins.values()))
+		return json.dumps(status)
 
 
 
 class DroneClient:
 	
-	def __init__(self, address='127.0.0.1', port=9999):
-		self.serverAddress = address
-		self.serverPort = port
+	def __init__(self, address, port):
+		self.address = address
+		self.port = port
 		
+	def testTask(self):
+		plugin = 'killerbeewids.trunk.drone.plugins.capture.CapturePlugin'
+		channel = 11
+		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'
+		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
+		return self.taskPlugin(plugin, channel, uuid, parameters)
+
+	def testDetask(self):
+		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'
+		return self.detaskPlugin(uuid)
+
 	def getStatus(self):
-		return self.makeRESTCall('/status')	
+		resource = '/status'
+		data = {}
+		return self.sendRequest(self.address, self.port, resource, data)		
 
 	def getInterfaces(self):
-		return self.makeRESTCall('/interfaces')
+		pass
 
-	
-		
-	def enumerateInterfaces(self):
-		return self.makeRESTCall('/interfaces/enumerate')
+	def taskPlugin(self, pluginName, channel, uuid, parameters):
+		resource = '/task'
+		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
+		data = {'plugin':pluginName, 'channel':channel, 'uuid':uuid, 'parameters':parameters}
+		return self.sendRequest(self.address, self.port, resource, data)		
 
-	def stopDaemon(self):
-		return self.makeRESTCall('/daemon/stop')
+	def detaskPlugin(self, uuid):
+		resource = '/detask'
+		parameters = {'uuid':uuid}
+		return self.sendRequest(self.address, self.port, resource, parameters)
 
+	def shutdownDrone(self):
+		resource = '/shutdown'
+		parameters = {}
+		return self.sendRequest(self.address, self.port, resource, parameters)
 
-	def getPlugins(self):
-		'''
-		determine which plugins the drone has to verify if an app's dependencies are met
-		'''
-	
-	def taskCapture(self, uuid, parameters):
-		#task drone to capture packets
-		required_plugins = ['capture']
-		method = 'POST'
-		content = 'application/json'
-		headers = { 'Content-Type' : 'application/json' }
-		data = {'channel' : 11, 'callback' : 'http:localhost:7777'}
-	
-		
-	def makeHTTPCall(self, resource=None, parameters=None):
-
-		resource = '/tasks/capture/123456/11/task'
-		parameters = {'channel':11, 'callback':'http://127.0.0.1:8888/data', 'filter':{}}
-
-		#make a string to hold the url of the request
-		url = "http://{0}:{1}{2}".format(self.serverAddress, self.serverPort, resource)
+	def sendRequest(self, address, port, resource, data):
+		url = "http://{0}:{1}{2}".format(address, port, resource)
 		http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'DroneClient'}
-		post_data_json = json.dumps(parameters)
+		post_data_json = json.dumps(data)
 		request_object = urllib2.Request(url, post_data_json, http_headers)
-
-		response = urllib2.urlopen(request_object)
-
-		#store request response in a string
-		html_string = response.read()
+		response_object = urllib2.urlopen(request_object)
+		response_string = response_object.read()
+		return response_string
 
 
-
-	def makeRESTCall(self, path):
-		try:
-			url = 'http://{0}:{1}{2}'.format(self.serverAddress, self.serverPort, path)
-			return urllib2.urlopen(url).read()
-		except urllib2.HTTPError, e:
-			print "HTTP error: %d" % e.code
-		except urllib2.URLError, e:
-			print "Network error: %s" % e.reason.args[1]	
-
-
-
-class Interface(KillerBee):
-	def __init__(self, device, datasource=None, gps=None):
-		KillerBee.__init__(self, device, datasource, gps)
-		self.task = None
-
-
-class DroneTask:
-	def __init__(self, uuid, plugin, channel, parameters, interface, instance):
-		self.uuid = uuid
-		self.plugin = plugin
-		self.channel = channel
-		self.parameters = parameters
-		self.interface = interface
-		self.state = 'running'
-		self.instance = instance
 
 
 

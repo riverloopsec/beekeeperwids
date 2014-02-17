@@ -1,8 +1,9 @@
 # These are some sample taskings for what the CapturePlugin may get tasked
 # with in different scenarios.
-
+'''
 from uuid import uuid1
 get_uuid = lambda: uuid1().bytes
+
 
 # All packets
 ap = {get_uuid():
@@ -37,4 +38,10 @@ ak = {get_uuid():
             #The mask to apply, and then the value to compare with
           }
      }}
+'''
+
+import json
+
+
+print(json.dumps({'callback': 'localhost:8080/app/fullcap/','filter'  : {}}))
 
