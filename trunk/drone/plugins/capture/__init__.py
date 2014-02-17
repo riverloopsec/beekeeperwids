@@ -20,6 +20,8 @@ class CapturePlugin(object):
         # FilterProcess which actually uses it whenever it gets an update.
         self.tasks  = dict() #dictionary is UUID: data
 
+	print('debug: break 01')
+
         self.status = True
         if len(kblist) != 1 or 'channel' not in data:
             self.status = False
@@ -32,6 +34,9 @@ class CapturePlugin(object):
                 #TODO tune exceptions and cleanup instance/device as needed
                 print("KillerBee instantiation failure: ({0}).".format(e))
                 self.status = False
+		
+	print('debug: break 02')
+
         if self.status:
             print("KillerBee instance to use for CapturePlugin ch {0} is {1}".format(channel, self.kb))
 

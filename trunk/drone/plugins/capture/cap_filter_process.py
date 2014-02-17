@@ -6,6 +6,8 @@ rmspeers 2013 riverloopsecurity.com
 
 import cPickle
 from multiprocessing import Process
+import urllib2
+import json
 
 class FilterProcess(Process):
     def __init__(self, pipe, task_pipe, stopevent, task_update_event):
@@ -17,8 +19,19 @@ class FilterProcess(Process):
 
     @staticmethod
     def do_callback(uuid, cburl, pkt):
+
+	# @ryan: below are hacks to bypass formatting/encoding errors, could you look into them?
+	# there were some UTF encoding errors for the raw bytes
+	pkt['datetime'] = str(pkt['datetime'])
+	pkt['bytes'] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt['bytes'] ] ).strip()
+	pkt[0] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt[0] ] ).strip()
+
         print("Calling back to {0} for UUID {1}, providing {2}.".format(cburl, uuid, pkt))
-        
+	http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'Drone'}
+	post_data_json = json.dumps({'uuid':uuid, 'pkt':pkt})
+	post_object = urllib2.Request(cburl, post_data_json, http_headers)
+	response = urllib2.urlopen(post_object)        
+
     def run(self):
         '''
         This part runs in a separate process as invoked by Multiprocessing.
