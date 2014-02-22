@@ -19,15 +19,27 @@ class AnalyticPlugin(Process):
 		self.logutil = KBLogUtil(self.config.settings.get('appname'))
 		self.database = db.DatabaseHandler(self.config.settings.get('database'))
 
+		self.PACKETS_ALL = {}
+		self.lastPacketTime = None
+
 
 	def taskDrone(self, uuid, plugin, channel, parameters):
-		pass
+		self.database.storeTaskRequest(uuid, plugin, channel, parameters)
 
 	def detaskDrone(self, uuid, plugin, channel, parameters):
 		pass
 
-	def getPackets(self):
-		pass
+	def getPackets(self, queryFilter):
+		return self.database.getPackets(queryFilter)
+
+	def getNewPackets(self, queryFilter):
+		try:
+			packets = self.database.session.query(Packet).all()
+			return packets
+		except Exception as e:
+			print("ERROR - Failed to Get Packets")
+			print(e)
+			return None
 
 	def getEvents(self):
 		pass
@@ -36,12 +48,24 @@ class AnalyticPlugin(Process):
 		pass
 
 
+	def terminate(self):
+		self.detaskAll()
+		self.shutdown()
+		'''
+		this method can be call externally to terminate the module
+		'''
+
+
 	def run(self):
 		'''
 		overwrite this method
 		'''
 		pass
 
+	def detaskAll(self):
+		'''
+		this function will detask all the running tasks on the drone prior to shutdown
+		'''
 
 	def shutdown(self):
 		'''
@@ -68,22 +92,19 @@ class BandwidthMonitor(AnalyticPlugin):
 	
 		# task drone to capture all packets on ch.11
 		uuid = str(uuid4())
-		plugin = 'killerbeewids.drone.plugins.capture.CapturePlugin'
-		channel = 11
 		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
-		self.database.storeTaskRequest(uuid, plugin, channel, parameters)
-		time.sleep(5)
+		self.taskDrone(uuid, plugin='killerbeewids.drone.plugins.capture.CapturePlugin', channel=11, parameters=parameters)
 
 		# get packets from database and run statistics
 		while True:
-			for packet in  self.database.getPackets():
+			for packet in self.getNewPackets(self.PACKETS_ALL):
 				self.packet_count += 1
-				self.database.session.delete(packet)
-				self.database.session.commit()
+				
 			
 			if self.packet_count > 10:
 				self.__generateEvent("Reached Packet count!!!!!!")
-					
+				
+		
 	
 	def shutdown(self):
 		# detask plugin
