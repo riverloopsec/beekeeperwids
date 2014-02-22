@@ -1,5 +1,13 @@
 #!/usr/bin/python
 
+from multiprocessing import Process
+
+import killerbeewids.wids.database as db
+from killerbeewids.utils import KBLogUtil
+
+# TODO - incorporate shutdown event & implement proper shutdown sequence
+# TODO - implement proper evenet generation mechanism
+
 class AnalyticPlugin(Process):
 
         def __init__(self, config, name):
@@ -39,14 +47,12 @@ class AnalyticPlugin(Process):
         def registerEvent(self):
                 pass
 
-
         def terminate(self):
                 self.detaskAll()
                 self.shutdown()
                 '''
                 this method can be call externally to terminate the module
                 '''
-
 
         def run(self):
                 '''
