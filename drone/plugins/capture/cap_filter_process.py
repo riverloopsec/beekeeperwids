@@ -10,7 +10,7 @@ import urllib2
 import json
 import os
 
-from killerbeewids.trunk.utils import KBLogUtil
+from killerbeewids.utils import KBLogUtil
 
 class FilterProcess(Process):
     def __init__(self, pipe, task_pipe, stopevent, task_update_event, drone, parent):

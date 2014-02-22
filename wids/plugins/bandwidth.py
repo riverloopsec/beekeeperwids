@@ -1,31 +1,40 @@
 #!/usr/bin/python
 
+import time
 import signal
 import logging
 from multiprocessing import Process
-from killerbeewids.trunk.wids.database import DatabaseHandler
-from killerbeewids.trunk.utils import KBLogger
-
-
-def generateUUID():
-
-	return 123456
+import killerbeewids.wids.database as db
+from killerbeewids.utils import KBLogUtil
+from uuid import uuid4
 
 
 class AnalyticPlugin(Process):
 
 	def __init__(self, config, name):
 		Process.__init__(self)
-		signal.signal(signal.SIGTERM, self.SIGTERM)	
 		self.name = name
 		self.config = config
-		self.database = DatabaseHandler(self.config.settings.get('database'))
-		self.logger = KBLogger(self.config.settings.get('logfile'))
-		self.logger.entry(self.name, 'Initializing')
+		self.desc = None
+		self.logutil = KBLogUtil(self.config.settings.get('appname'))
+		self.database = db.DatabaseHandler(self.config.settings.get('database'))
 
-	def SIGTERM(self, sig, frame)
-		self.logger.entry(self.name, 'SIGTERM')
-		self.shutdown()
+
+	def taskDrone(self, uuid, plugin, channel, parameters):
+		pass
+
+	def detaskDrone(self, uuid, plugin, channel, parameters):
+		pass
+
+	def getPackets(self):
+		pass
+
+	def getEvents(self):
+		pass
+
+	def registerEvent(self):
+		pass
+
 
 	def run(self):
 		'''
@@ -42,31 +51,46 @@ class AnalyticPlugin(Process):
 
 
 
+# TODO - incorporate shutdown event & implement proper shutdown sequence
+# TODO - implement proper evenet generation mechanism
+
 class BandwidthMonitor(AnalyticPlugin):
 
 	def __init__(self, config):
-		Plugin.__init__(self, config, "BandwidthMonitorPlugin")
+		AnalyticPlugin.__init__(self, config, "BandwidthMonitor")
+		self.desc = 'BandwidthMonitor'
 		self.byte_count = 0
+		self.packet_count = 0
+		self.tasks = []
 
 	def run(self):
-		# request WIDSManager to task drone to capture data
-		uuid = generateUUID()
-		parameters = {'channel':11, 'uuid':uuid}
-		msg = {'src':'plugin', 'dst':'WIDSManager', 'code':'task:capture', 'parameters':parameters}
-		self.database.sendMessage(msg)
-		# TODO write execption handler in case that message reply is not succesfull		
+		self.logutil.log(self.desc, 'Starting Execution', self.pid)
+	
+		# task drone to capture all packets on ch.11
+		uuid = str(uuid4())
+		plugin = 'killerbeewids.drone.plugins.capture.CapturePlugin'
+		channel = 11
+		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
+		self.database.storeTaskRequest(uuid, plugin, channel, parameters)
+		time.sleep(5)
 
-		# monitor for new data
-		search_parameters = {'tags':['new'], 'uuid':uuid}
-		for packet in self.database.getPackets(search_parameters):
-			byte_count += packet.byte_size
-			if self.checkByteCount():
-				return
+		# get packets from database and run statistics
+		while True:
+			for packet in  self.database.getPackets():
+				self.packet_count += 1
+				self.database.session.delete(packet)
+				self.database.session.commit()
+			
+			if self.packet_count > 10:
+				self.__generateEvent("Reached Packet count!!!!!!")
+					
+	
+	def shutdown(self):
+		# detask plugin
+		pass
 
-	def checkByteCount(self):
-		if self.byte_count > self.threshold:
-			print("Met Threshold!!!!!!!!!!!!!!!!!!!!!")
-			#self.widsAPI.registerEvent('met bandwidth threshold')					
+	def __generateEvent(self, eventmsg):
+		print("generating event: {0}".format(eventmsg))
 
 
 

@@ -8,8 +8,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 Base = declarative_base()
 
 '''
-class Event(Base):
-	__tablename__ = 'event'
+class Drone(Base):
+	__tablename__ = 'drone'
 '''
 
 class TaskRequest(Base):
@@ -54,13 +54,15 @@ class Packet(Base):
 		self.datetime = str(pktdata.get('datetime'))
 		self.source = str(pktdata.get('location'))
                 self.dbm = str(pktdata['dbm'])
-                #self.bytes = str(data['bytes'])
+                self.bytes = str(data['bytes'])
                 self.rssi = str(pktdata['rssi'])
                 #self.validcrc = str(pktdata['validcrc'])
 		
-# TODO - implement filters for packet queries
 
 class DatabaseHandler:
+	# the database is implemeneted in SQLAlhemy to facilitate packet lookups
+	# this allows complex object-level queries without dealing with SQL 
+	# this class should probably be a part of the BaseApp class
 	def __init__(self, database, path='/home/dev/etc/kb'):
 		self.engine = create_engine("sqlite:///{0}/{1}".format(path, database), echo=False)
 		if not os.path.isfile(database):
@@ -71,11 +73,8 @@ class DatabaseHandler:
 		Base.metadata.create_all(self.engine)
 
 	def storePacket(self, pktdata):
-		try:
-			self.session.add(Packet(pktdata))
-			self.session.commit()
-		except Exception as e:
-			print(e)
+		self.session.add(Packet(pktdata))
+		self.session.commit()
 
 	def getPackets(self, pktfilter=None, maxcount=None):
 		results = self.session.query(Packet).all()

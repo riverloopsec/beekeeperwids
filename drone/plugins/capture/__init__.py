@@ -7,7 +7,7 @@ from multiprocessing import Pipe, Event, Manager
 from cap_filter_process import FilterProcess
 from cap_sniffer_process import SnifferProcess
 
-from killerbeewids.trunk.drone.plugins import BaseDronePlugin
+from killerbeewids.drone.plugins import BaseDronePlugin
 
 
 class CapturePlugin(BaseDronePlugin):

@@ -10,7 +10,8 @@ def getPlugin(path):
 	plugin = path.split('.')[-1]
 	try:
 		p = getattr(__import__(str(module), fromlist=[str(plugin)]), str(plugin))
-	except(ImportError, AttributeError):
+	except(ImportError, AttributeError) as e:
+		print(e)
 		p = None
 	return p
 

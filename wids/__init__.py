@@ -9,98 +9,112 @@ import signal
 import time
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
-from killerbeewids.trunk.utils import KBLogger, RunFile, getPlugin
-from killerbeewids.trunk.drone import DroneClient
-from killerbeewids.trunk.wids.database import DatabaseHandler
-from killerbeewids.trunk.wids.server import WIDSWebServer
-from killerbeewids.trunk.wids.engine import WIDSRuleEngine
-
+from killerbeewids.utils import KBLogUtil, getPlugin
+from killerbeewids.drone import DroneClient
+from killerbeewids.wids.database import DatabaseHandler
+from killerbeewids.wids.server import WIDSWebServer
+from killerbeewids.wids.engine import WIDSRuleEngine
 
 
 class WIDSManager:
 
 	def __init__(self, configfile):
+		signal.signal(signal.SIGINT, self.SIGINT)
+		self.pid = os.getpid()
+		self.desc = 'Daemon'
 		self.config = WIDSConfig(configfile)
-		print(self.config.settings)
-		self.logger = KBLogger(self.config.settings.get('logfile'))
+		#print(self.config.settings)
+		self.logutil = KBLogUtil(self.config.settings.get('appname'))
 		self.database = DatabaseHandler(self.config.settings.get('database'))
-		self.runfile = RunFile('/home/dev/etc/kbwids/app1.run')
 		self.plugins = []
+		self.analytics = []
 		self.drones = []
 		self.processes = []
+		self.logutil.logline()
+		self.logutil.log(self.desc, 'Initializing', self.pid)
+		self.active = True
 		self.startWIDS()
 
+	def SIGINT(self, s, f):
+		if self.pid == os.getpid():
+			print("\n\n[!] SIGINT: Initiating WIDS Shutdown")
+			self.logutil.log(self.desc, 'SIGINT', self.pid)
+			self.active = False
+
 	def startWIDS(self):
-		self.logger.entry("WIDSManager", "Starting WIDS")
-		self.runfile.set()
+		self.logutil.log(self.desc, 'Starting Daemon', self.pid)
 		self.startProcesses()
 		self.run()
 
 	def stopWIDS(self):
-		self.logger.entry("WIDSManager", "Initiating WIDS Shutdown")
+		self.logutil.log(self.desc, 'Initiating Shutdown', self.pid)
 		self.stopProcesses()
-		self.runfile.remove()
-		self.logger.entry("WIDSManager", "Completed WIDS Shutdown")
+		self.logutil.log(self.desc, 'Successfull Shutdown', self.pid)
+		print("[!] Succesfully Terminated WIDS")
+		self.logutil.endlog()
+		sys.exit()
 
 	def startProcesses(self):
+		self.startEngine()
+		time.sleep(2)
 		self.startServer()
-		#self.startEngine()
 		for plugin in self.config.plugins:
-			pass
-			#self.startPlugin(plugin)
+			self.startPlugin(plugin)
 
 	def startServer(self):
-		self.logger.entry("WIDSManager", "Starting WIDS WebServer")
+		self.logutil.log(self.desc, 'Starting Process: WIDSServer', self.pid)
 		p = WIDSWebServer(self.config)
 		p.start()
 		self.processes.append(p)
 
 	def startEngine(self):
-		self.logger.entry("WIDSManager", "Starting WIDS RuleEngine")
+		self.logutil.log(self.desc, "Starting Process: WIDSEngine", self.pid)
 		p = WIDSRuleEngine(self.config)
 		p.start()
 		self.processes.append(p)
 
-	def startPlugin(self, plugin):
-		pluginModule = plugin.get('module')
-		pluginName = plugin.get('name')
-		pluginParameters = plugin.get('parameters')
-		pluginClass = getPlugin('killerbeewids.trunk.wids.plugins.{0}'.format(pluginModule), pluginName)
-		pluginProcess = pluginClass(None, None, pluginParameters)
+	def startPlugin(self, plugindata):
+		pluginName = plugindata.get('name')
+		self.logutil.log(self.desc, 'Starting Process: {0}'.format(pluginName), self.pid)
+		pluginClass = getPlugin(plugindata.get('src'))
+		pluginProcess = pluginClass(self.config)
 		pluginProcess.start()
 		self.processes.append(pluginProcess)
-		self.logger.entry("WIDSManager", "Started {0} Plugin".format(pluginProcess))
 
 	def stopProcesses(self):
-		self.logger.entry("WIDSManager", "Stoping Child Processes")
+		self.logutil.log(self.desc, 'Terminating Child Processes', self.pid)
 		for process in self.processes:
 			process.terminate()
 			process.join()
-			self.logger.entry("WIDSManager", "{0} Terminated".format(process))
+			self.logutil.log(self.desc, 'Terminated: {0} '.format(process), self.pid)
+		self.logutil.log(self.desc, 'Succesfully Terminated Child Processes', self.pid)
 
 	def run(self):
-		while self.runfile.check():
-			for message in self.database.newMessages():
-				print("received a new message")
+		self.logutil.log(self.desc, 'Starting Main Execution', self.pid)
+		while self.active:
+			for TaskRequest in self.database.getTaskRequests():
+				if TaskRequest.complete == False:
+					drone = self.config.drones[0]
+					TaskRequest.complete = True
+					self.database.session.commit()
+					# TODO - add exception handler
+					client = DroneClient(drone.get('address'), drone.get('port'))
+					client.taskPlugin(TaskRequest.plugin, TaskRequest.channel, TaskRequest.uuid, TaskRequest.parameters)
+			time.sleep(5)
+		self.logutil.log(self.desc, 'Terminated Main Execution', self.pid)
 		self.stopWIDS()
-	
+
 	def processMessage(self, message):
-		if message.code = 'task':
+		if message.code == 'task':
 			self.taskDrone(message.parameters)
 
 	def manageDrones(self):
 		# connect to drones
-		for drone in self.config.drones:
-			
+		pass	
 		
 
-
 	def taskDrone(self, parameters):
-		#TODO - task plugin validation
-		self.logger.entry("WIDSManager", "Tasking Drone")
-		drone = DroneClient()
-		drone.		
-
+		pass
 
 class WIDSConfig:
 
@@ -119,6 +133,7 @@ class WIDSConfig:
 			self.settings[key] = value
 		for pluginElement in root.findall('plugin'):
 			plugin = {}
+			plugin['src'] = pluginElement.get('src')
 			plugin['module'] = pluginElement.get('module')
 			plugin['name'] = pluginElement.get('name')
 			parameters = {}
@@ -128,7 +143,12 @@ class WIDSConfig:
 			self.plugins.append(plugin)
 		for ruleElement in root.findall('rule'):
 			pass
-
+		for droneElement in root.findall('drone'):
+			drone = {}
+			drone['name'] = droneElement.get('name')
+			drone['address'] = droneElement.get('address')
+			drone['port'] = droneElement.get('port')
+			self.drones.append(drone)
 
 
 

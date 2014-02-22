@@ -3,12 +3,14 @@
 <config>
 
 
-<setting key='appname' value='app1'/>
-<setting key='database' value='/home/dev/etc/kbwids/app1.db' />
-<setting key='logfile' value='/home/dev/etc/kbwids/app1.log' />
+<setting key='appname' value='kbwids'/>
+<setting key='database' value='kbwids.db' />
+<setting key='logfile' value='kbwids.log' />
 <setting key='server_port' value='8888' />
 
-<plugin name='BandwidthMonitor' module='bandwidth' >
+<drone name='drone.0' address='127.0.0.1' port='9999' />
+
+<plugin name='BandwidthMonitor' module='bandwidth' src='killerbeewids.wids.plugins.bandwidth.BandwidthMonitor'>
 	<parameter key='threshold' value='100000'/>
 	</plugin>
 

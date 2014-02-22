@@ -15,7 +15,7 @@ import json
 import signal
 from uuid import uuid4 as generateUUID
 from killerbee import kbutils
-from killerbeewids.trunk.utils import KBLogUtil, KBInterface, getPlugin
+from killerbeewids.utils import KBLogUtil, KBInterface, getPlugin
 
 
 class DroneDaemon:
@@ -103,6 +103,7 @@ class DroneDaemon:
 			self.logutil.log(self.desc, 'Starting New Plugin: ({0}, ch.{1})'.format(pluginShortName, channel), self.pid)
 			# TODO right exception handler for no available interfaces
 			interface = self.getAvailableInterface()
+			# TODO right exception handler for unablailable plugin
 			pluginClass = getPlugin(pluginName)
 			plugin = pluginClass([interface], channel, self.drone)
 			self.plugins[(pluginShortName, channel)] = plugin
@@ -172,7 +173,7 @@ class DroneClient:
 		self.port = port
 		
 	def testTask(self):
-		plugin = 'killerbeewids.trunk.drone.plugins.capture.CapturePlugin'
+		plugin = 'killerbeewids.drone.plugins.capture.CapturePlugin'
 		channel = 11
 		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'
 		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
@@ -192,7 +193,6 @@ class DroneClient:
 
 	def taskPlugin(self, pluginName, channel, uuid, parameters):
 		resource = '/task'
-		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
 		data = {'plugin':pluginName, 'channel':channel, 'uuid':uuid, 'parameters':parameters}
 		return self.sendRequest(self.address, self.port, resource, data)		
 
@@ -211,9 +211,12 @@ class DroneClient:
 		http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'DroneClient'}
 		post_data_json = json.dumps(data)
 		request_object = urllib2.Request(url, post_data_json, http_headers)
-		response_object = urllib2.urlopen(request_object)
-		response_string = response_object.read()
-		return response_string
+		try:
+			response_object = urllib2.urlopen(request_object)
+			response_string = response_object.read()
+			return response_string
+		except:
+			return "unable to connect to drone"
 
 
 

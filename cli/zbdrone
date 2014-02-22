@@ -8,8 +8,8 @@ import argparse
 import subprocess
 import json
 
-from killerbeewids.trunk.drone import DroneClient, DroneDaemon
-from killerbeewids.trunk.utils import KBLogUtil
+from killerbeewids.drone import DroneClient, DroneDaemon
+from killerbeewids.utils import KBLogUtil
 
 class CLI:
 

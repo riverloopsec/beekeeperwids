@@ -2,8 +2,7 @@
 
 import sys
 import argparse
-from killerbeewids.trunk.wids import WIDSManager
-from killerbeewids.trunk.utils import RunFile
+from killerbeewids.wids import WIDSManager
 
 
 
@@ -13,7 +12,10 @@ def startWIDSManager():
 
 def stopWIDSManager():
 	print("Stoping WIDSManager")
-	RunFile('/home/dev/etc/kbwids/app1.run').unset()
+	#RunFile('/home/dev/etc/kbwids/app1.run').unset()
+
+def showwatch():
+	print("watch -n 1 \"ps -eF | grep -v grep | grep zbwids | grep -v vim | grep -v '\-m' | grep -v '\-S'\"")
 
 
 def usage():
@@ -23,14 +25,17 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-s', '--start', action='store_true', dest="start")
 	parser.add_argument('-k', '--kill', action='store_true', dest="kill")
-	parser.add_argument('-r', '--restart', action='store_true', dest='restart')
+	parser.add_argument('-d', '--add-drone', action='store_true', dest='adddrone')
+	parser.add_argument('-m', '--add-module', action='store_true', dest='addmodule')
+	parser.add_argument('-r', '--add-rule', action='store_true', dest='addrule')
+	parser.add_argument('-w', action='store_true', dest='watch')
+	
 	args = parser.parse_args()
 	if args.start:
 		startWIDSManager()
 	elif args.kill:
 		stopWIDSManager()
-	elif args.restart:
-		stopWIDSManager()
-		startWIDSManager()
+	elif args.watch:
+		showwatch()
 	else:
 		usage()
