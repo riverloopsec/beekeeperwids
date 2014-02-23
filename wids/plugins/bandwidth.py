@@ -9,7 +9,7 @@ from uuid import uuid4
 import AnalyticPlugin
 
 class BandwidthMonitor(AnalyticPlugin):
-    ''' v2
+    ''' v0.2
     This is a demonstration application which will alert when the WIDS system
     has stored over N packes in a given timeframe...blah blah blah...
     '''
