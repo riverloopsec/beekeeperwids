@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from killerbeewids.wids.database import *
+
 class AnalyticPlugin(Process):
 
         def __init__(self, config, name):
@@ -9,9 +11,9 @@ class AnalyticPlugin(Process):
                 self.desc = None
                 self.logutil = KBLogUtil(self.config.settings.get('appname'))
                 self.database = db.DatabaseHandler(self.config.settings.get('database'))
-
+		self.tasks = []
                 self.PACKETS_ALL = {}
-                self.lastPacketTime = None
+                self.lastPacket = 0
 
 
         def taskDrone(self, uuid, plugin, channel, parameters):
@@ -20,21 +22,26 @@ class AnalyticPlugin(Process):
         def detaskDrone(self, uuid, plugin, channel, parameters):
                 pass
 
-        def getPackets(self, queryFilter):
-                return self.database.getPackets(queryFilter)
+        def getPackets(self, queryFilter=[]):
+		query = db.session.query(Packet)
+		for key,operator,value in queryFilter:
+			#print(key,operator,value)
+			query = query.filter('{0}{1}{2}'.format(key,operator,value))
+		results = query.all()
+		return results
 
-        def getNewPackets(self, queryFilter):
-                # records the last packet id and only searches for new packets
-                try:
-                        packets = self.database.session.query(Packet).all()
-                        return packets
-                except Exception as e:
-                        print("ERROR - Failed to Get Packets")
-                        print(e)
-                        return None
+        def getNewPackets(self, queryFilter=[]):
+		queryFilter.append(('id','>',self.lastPacket))
+		results = self.getPackets(queryFilter)
+		self.lastPacket = results[-1].id
+		return results
 
         def getEvents(self):
                 pass
+
+
+	def generateEvent(self0:
+		pass
 
         def registerEvent(self):
                 pass
@@ -42,7 +49,7 @@ class AnalyticPlugin(Process):
 
         def terminate(self):
                 self.detaskAll()
-                self.shutdown()
+                self.cleanup()
                 '''
                 this method can be call externally to terminate the module
                 '''
