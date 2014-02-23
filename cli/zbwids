@@ -1,41 +1,173 @@
 #!/usr/bin/python
 
 import sys
+import os
 import argparse
-from killerbeewids.wids import WIDSManager
+import subprocess
+import traceback
+from time import sleep
+from killerbeewids.wids import WIDSDaemon
+from killerbeewids.utils import KBLogUtil,KBPATH
+
+def debug(args):
+	pass
+
+def start(args):
+	'''
+        starts a WIDS instance in the background
+        '''
+        cmd = 'zbwids --run --widsid {0} --port {1}'.format(args.widsid, args.port).split(' ')
+        DEVNULL = open(os.devnull, 'w')
+        subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+def run(args):
+	'''
+        starts wids instance in the terminal
+        '''
+        try:
+                WIDSDaemon(args.widsid, args.port).startDaemon()
+        except Exception as e:
+                print("Failed to Start WIDS")
+                print(e)
+		traceback.print_exc()
+
+def stop(args):
+	'''
+        sends an interrupt signal (SIGINT) to the wids daemon
+        '''
+        pid = KBLogUtil('kbwids.{0}'.format(args.widsid)).getPID()
+        os.system('kill -s 2 {0}'.format(pid))
 
 
-
-def startWIDSManager():
-	print("Starting WIDSManager")
-	WIDSManager('dev.xml')
-
-def stopWIDSManager():
-	print("Stoping WIDSManager")
-	#RunFile('/home/dev/etc/kbwids/app1.run').unset()
-
-def showwatch():
-	print("watch -n 1 \"ps -eF | grep -v grep | grep zbwids | grep -v vim | grep -v '\-m' | grep -v '\-S'\"")
+def logs(args):
+        '''
+        tails the logfile for the daemon
+        '''
+        os.system('clear')
+        logfile = KBLogUtil('kbwids.{0}'.format(args.widsid)).logfilename
+        os.system('tail -F {0}'.format(logfile))
 
 
-def usage():
-	print("you are using it wrong...")
+def watch(args):
+        '''
+        runs the find command every <refresh> seconds
+        '''
+        while True:
+                os.system('clear')
+                find(args)
+                sleep(args.refresh)
+
+def find(args):
+        '''
+        searches the process list for running drone processes
+        '''
+        cmd = ['ps', '-f', '-C', 'zbwids']
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        o,e = p.communicate()
+        print(o)
+
+def monitor(args):
+        '''
+        runs the status command every <refresh> seconds
+        '''
+        while True:
+                os.system('clear')
+                status(args)
+                sleep(args.refresh)
+
+
+def status(args):
+        '''
+        queries the drone daemon for status information
+        '''
+        c = DroneClient(args.address, args.port)
+        status = c.getStatus()
+        if status == 'unable to connect to WIDS':
+                print(status)
+                return
+        displayStatus(status)
+
+def displayStatus(status):
+	print(status)
+
+'''
+
+KillerbeeWIDS
+
+Processes
+=========
+
+Daemon	..	..	..
+Server	..	..	..
+Enginer	..	..	..	
+
+Drones
+========
+
+Drone0
+Drone1
+
+Plugins
+========
+
+Bandwidth ..	..	..	
+
+	Task 11111	..	..	..  3248 Packets
+
+Dissassoc ..	..	..
+
+	Task 2222 	..	..	.. 394 Packets
+
+
+Events
+=======
+
+EventName	count
+EventName	count
+
+
+'''
+
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument('-s', '--start', action='store_true', dest="start")
-	parser.add_argument('-k', '--kill', action='store_true', dest="kill")
-	parser.add_argument('-d', '--add-drone', action='store_true', dest='adddrone')
-	parser.add_argument('-m', '--add-module', action='store_true', dest='addmodule')
-	parser.add_argument('-r', '--add-rule', action='store_true', dest='addrule')
-	parser.add_argument('-w', action='store_true', dest='watch')
-	
-	args = parser.parse_args()
-	if args.start:
-		startWIDSManager()
-	elif args.kill:
-		stopWIDSManager()
-	elif args.watch:
-		showwatch()
-	else:
-		usage()
+
+        parser = argparse.ArgumentParser()
+	parser.add_argument('--config', action='store', default='{0}/wids/defaultconfig.xml'.format(KBPATH))
+	parser.add_argument('--widsid', action='store', default='0')
+        parser.add_argument('--start', action='store_true')
+        parser.add_argument('--run', action='store_true')
+        parser.add_argument('--stop', action='store_true')
+        parser.add_argument('--port', action='store', type=int, default=8888)
+        parser.add_argument('--find', action='store_true')
+        parser.add_argument('--watch', action='store_true')
+        parser.add_argument('--status', action='store_true')
+        parser.add_argument('--monitor', action='store_true')
+        parser.add_argument('--refresh', action='store', type=int, default=3)
+        parser.add_argument('--logs', action='store_true')
+        parser.add_argument('--debug', action='store_true')
+        parser.add_argument('--listener', action='store_true')
+
+        args = parser.parse_args()
+
+        if args.debug:
+                debug(args)
+        if args.listener:
+                listener(args)
+        elif args.run:
+                run(args)
+        elif args.start:
+                start(args)
+        elif args.stop:
+                stop(args)
+        elif args.find:
+                find(args)
+        elif args.watch:
+                watch(args)
+        elif args.status:
+                status(args)
+        elif args.monitor:
+                monitor(args)
+        elif args.logs:
+                logs(args)
+
+
