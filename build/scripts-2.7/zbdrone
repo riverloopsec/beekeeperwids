@@ -1,0 +1,269 @@
+#!/usr/bin/python
+
+import os
+import sys
+import subprocess
+import argparse
+import json
+import flask
+import traceback
+from time import sleep
+from killerbeewids.drone import DroneClient,DroneDaemon
+from killerbeewids.utils import KBLogUtil,checkDronePlugin
+
+def debug(args):
+	os.system('gnome-terminal --geometry 228x8-1+29 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -watch"')
+	os.system('gnome-terminal --geometry 145x32+3913+207 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -logs"')
+	os.system('gnome-terminal --geometry 80x47-6+206 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -monitor"')
+	os.system('gnome-terminal --geometry 146x12+3907+806')
+
+def start(args):
+	'''
+	starts a drone instance in the background
+	'''
+	cmd = 'zbdrone -run -name {0} -port {1}'.format(args.name, args.port).split(' ')
+	DEVNULL = open(os.devnull, 'w')
+	subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+
+def run(args):
+	'''
+	starts a drone instance in the terminal
+	'''
+	try:
+		DroneDaemon(args.name, args.port).startDaemon()
+	except Exception:
+		traceback.print_exc()
+
+def stop(args):
+	'''
+	sends an interrupt signal (SIGINT) to the drone process
+	'''	
+	pid = KBLogUtil(args.name, args.workdir).getPID()
+	os.system('kill -s 2 {0}'.format(pid))
+
+def restart(args):
+	'''
+	restarts a drone instance
+	'''
+	stop(args)
+	
+
+
+def kill(args):
+	'''
+	sends a kill signal (SIGKILL) to the drone process
+	'''
+	pass
+
+
+def listener(args):
+	'''
+	deploys simple server to test drone data callbacks
+	'''
+	app = flask.Flask(__name__)
+	app.add_url_rule('/testdata', None, recvTestData, methods=['POST'])
+	app.run(debug=False, port=9992)
+
+def recvTestData():
+	'''
+	test function that receives data from the test listener
+	'''
+	print("============ RECV DATA ==============")
+	data = json.loads(flask.request.data)
+	print('UUID : {0}'.format(data.get('uuid')))
+	print('PKT  : {0}'.format(data.get('pkt')))
+	return "thank you come again"
+
+def task(args):
+	'''
+	send a task request to the drone
+	'''
+	usage = '\nUSAGE: \n\nzbdrone --task --uuid "0123456" --channel "11" --plugin "CapturePlugin" --callback "http://url" -filter "{0}"\n'
+	example = '\nEXAMPLE: \n\nzbdrone --task --uuid "0123456" --channel "11" --plugin "CapturePlugin" --callback "http://127.0.0.1:9992/testdata" --filter "{}"\n'
+
+	if args.uuid == None or args.channel == None or args.plugin == None or args.callback == None or args.filter == None:
+		print(usage)
+		print(example)
+		sys.exit()
+
+	plugin = checkDronePlugin(args.plugin)
+	if plugin == None:
+		print('The specified plugin: {0} does not exist'.format(args.plugin))
+	else:
+		print('[+] FOUND PLUGIN: {0}'.format(plugin))
+
+	parameters = {}
+	parameters['callback'] = args.callback
+	parameters['filter'] = {}
+
+	c = DroneClient(args.address, args.port)
+	results = c.task(args.plugin, args.channel, args.uuid, parameters)
+	print(results)
+	# check drone status for task
+
+
+def detask(args):
+	'''
+	sends a detask request to the drone
+	'''
+	c = DroneClient(args.address, args.port)
+	results = c.detask(args.uuid)
+	print(results)
+
+
+def logs(args):
+	'''
+	tails the logfile for the daemon
+	'''
+	os.system('clear')
+	logfile = KBLogUtil(args.name, args.workdir).logfilename
+	os.system('tail -F {0}'.format(logfile))
+
+
+def watch(args):
+	'''
+	runs the find command every <refresh> seconds
+	'''
+	while True:
+		os.system('clear')
+		find(args)
+		sleep(args.refresh)
+
+def find(args):
+	'''
+	searches the process list for running drone processes
+	'''
+	cmd = ['ps', '-f', '-C', 'zbdrone']
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+	o,e = p.communicate()
+	print(o)
+
+def monitor(args):
+	'''
+	runs the status command every <refresh> seconds
+	'''
+	while True:
+		os.system('clear')
+		status(args)
+		sleep(args.refresh)
+
+def status(args):
+	'''
+	queries the drone daemon for status information
+	'''
+	c = DroneClient(args.address, args.port)
+	status = c.getStatus()
+	if status == 'unable to connect to drone':
+		print(status)
+		return
+	displayStatus(status)
+
+
+def displayStatus(json_data):
+	'''
+	displays the status of a drone to the terminal
+	'''
+	data = json.loads(json_data)
+	pid = data.get('config').get('pid')
+	name = data.get('config').get('name')
+	print("="*40)
+	print("Killerbee Drone Status")
+	print("="*40)
+	print("[+] DRONE CONFIG:")
+	print(str('\tNAME').ljust(8) + ': ' + str(name))
+	print(str('\tPID').ljust(8) + ': ' + str(pid))
+	print("\n[+] INTERFACES:")
+	for interface in data.get('interfaces'):
+		device = interface.get('device')
+		active = interface.get('active')
+		plugin = interface.get('plugin')
+		print("\n\t[+] Interface: {0} (Active={1}, Plugin={2})".format(device, active, plugin))
+	print("\n[+] PLUGINS:")
+	for plugin in data.get('plugins'):
+		desc = plugin.get('desc')
+		pid = plugin.get('pid')
+		active = plugin.get('active')
+		print("\n\t[+] Plugin: {0} (PID={1}, Active={2})".format(desc, pid, active))
+		for process in plugin.get('processes'):
+			pdesc = process.get('desc')
+			ppid = process.get('pid')
+			print("\n\t\t[+] Process: {0} (PID={1})".format(pdesc, ppid))
+		for task in plugin.get('tasks'):
+			uuid = task.get('uuid')
+			parameters = task.get('parameters')
+			callback = task.get('parameters').get('callback')
+			del(parameters['callback'])
+			print("\n\t\t[+] Task: {0} (Callback: {1})".format(uuid, callback))
+			print("\t\t\t{0}".format(parameters))
+
+def test(args):
+	DroneClient('127.0.0.1', 9999).testTask()
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-start', action='store_true')
+	parser.add_argument('-run', action='store_true')
+	parser.add_argument('-stop', action='store_true')
+	parser.add_argument('-kill', action='store_true')
+	parser.add_argument('-droneid', action='store', default='0')
+	parser.add_argument('-name', action='store', default='drone0')
+	parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
+	parser.add_argument('-address', action='store', default='127.0.0.1')
+	parser.add_argument('-port', action='store', type=int, default=9999)
+	parser.add_argument('-task', action='store_true')
+	parser.add_argument('-detask', action='store_true')
+	parser.add_argument('-uuid', action='store')
+	parser.add_argument('-channel', action='store')
+	parser.add_argument('-plugin', action='store')
+	parser.add_argument('-filter', action='store')
+	parser.add_argument('-callback', action='store')
+	parser.add_argument('-find', action='store_true')
+	parser.add_argument('-watch', action='store_true')
+	parser.add_argument('-status', action='store_true')
+	parser.add_argument('-monitor', action='store_true')
+	parser.add_argument('-refresh', action='store', type=int, default=3)
+	parser.add_argument('-logs', action='store_true')
+	parser.add_argument('-debug', action='store_true')
+	parser.add_argument('-listener', action='store_true')
+	parser.add_argument('-test', action='store_true')
+
+	args = parser.parse_args()
+
+	if args.debug:
+		debug(args)
+	elif args.test:
+		test(args)
+	elif args.listener:
+		listener(args)
+	elif args.run:
+		run(args)
+	elif args.start:
+		start(args)
+	elif args.stop:
+		stop(args)
+	elif args.kill:
+		kill(args)
+	elif args.task:
+		task(args)
+	elif args.detask:
+		detask(args)
+	elif args.find:
+		find(args)
+	elif args.watch:
+		watch(args)
+	elif args.status:
+		status(args)
+	elif args.monitor:
+		monitor(args)
+	elif args.logs:
+		logs(args)
+	elif args.task:
+		task(args)	
+	elif args.detask:
+		detask(args)
+	
+
+
+

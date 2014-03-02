@@ -17,7 +17,6 @@ setup(name='killerbeewids',
                 'killerbeewids.wids', 'killerbeewids.wids.modules',
                 'killerbeewids.utils'],
       scripts=['cli/zbdrone', 'cli/zbwids'],
-      install_requires=['flask', 'killerbee >= 2.5'],
       # Consider using Markdown such as in https://coderwall.com/p/qawuyq
       long_description = open('README.txt').read(),
      )

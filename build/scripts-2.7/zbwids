@@ -1,0 +1,190 @@
+#!/usr/bin/python
+
+import sys
+import os
+import argparse
+import subprocess
+import json
+import traceback
+from time import sleep
+from killerbeewids.wids import WIDSDaemon,WIDSClient
+from killerbeewids.utils import KBLogUtil,KBPATH
+from killerbeewids.utils import terminal_ui
+
+def debug(args):
+	pass
+
+def start(args):
+	'''
+        starts a WIDS instance in the background
+        '''
+        cmd = 'zbwids --run --widsid {0} --port {1}'.format(args.widsid, args.port).split(' ')
+        DEVNULL = open(os.devnull, 'w')
+        subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+def run(args):
+	'''
+        starts wids instance in the terminal
+        '''
+	print("== Staring WIDS ==")
+        w = WIDSDaemon()
+	w.startDaemon()
+	pass
+
+def stop(args):
+	'''
+        sends an interrupt signal (SIGINT) to the wids daemon
+        '''
+        pid = KBLogUtil(args.name, args.workdir).getPID()
+        os.system('kill -s 2 {0}'.format(pid))
+
+
+def addDrone(args):
+	'''
+	sends request to load a new drone to the WIDS
+	'''
+        json_data = WIDSClient(args.address, args.port).addDrone(args.droneurl)
+	print(json_data)
+
+
+def delDrone(args):
+	'''
+	sends request to delete drone from WIDS config
+	'''
+	json_data = WIDSClient(args.address, args.port).delDrone(args.droneindex)
+	print(json_data)
+
+def loadModule(args):
+	json_data = WIDSClient(args.address, args.port).loadModule(args.modulename, args.modulesettings)
+	print(json_data)
+
+def unloadModule(args):
+	json_data = WIDSClient(args.address, args.port).unloadModule(args.moduleindex)
+	print(json_data)
+
+def logs(args):
+        '''
+        tails the logfile for the daemon
+        '''
+        os.system('clear')
+        logfile = KBLogUtil(args.name, args.workdir).logfilename
+        os.system('tail -F {0}'.format(logfile))
+
+
+def watch(args):
+        '''
+        runs the find command every <refresh> seconds
+        '''
+        while True:
+                os.system('clear')
+                find(args)
+                sleep(args.refresh)
+
+def find(args):
+        '''
+        searches the process list for running drone processes
+        '''
+        cmd = ['ps', '-f', '-C', 'zbwids']
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        o,e = p.communicate()
+        print(o)
+
+def monitor(args):
+        '''
+        runs the status command every <refresh> seconds
+        '''
+        while True:
+                os.system('clear')
+                status(args)
+                sleep(args.refresh)
+
+
+#TODO - factor out this code
+def status(args):
+        '''
+        queries the drone daemon for status information
+        '''
+        json_data = WIDSClient(args.address, args.port).getStatus()
+	results = json.loads(json_data)
+	success = results['success']
+	data = results['data']
+	print('\n[+] Requesting WIDS Status:')
+	if success:
+		displayStatus(data)
+	else:
+		if args.v:
+			print('\n[!] Failed. See Traceback below:\n')
+			print(data)
+		else:
+			print('\n[!] Failed (use -v for more info)\n')
+
+def displayStatus(data):
+	terminal_ui.printList('Config', data['config'], order=['name', 'daemon_pid', 'engine_pid', 'server_port', 'workdir'])
+	terminal_ui.printTable('Drones', data['drones'], order=['id', 'status', 'url', 'tasks', 'plugins', 'heartbeat'])
+	terminal_ui.printTable('Modules', data['modules'])
+	terminal_ui.printTable('Tasks', data['tasks'])
+	terminal_ui.printTable('Rules', data['rules'])
+	
+
+
+if __name__ == '__main__':
+
+        parser = argparse.ArgumentParser()
+	parser.add_argument('-name', action='store', default='kbwids0')
+	parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
+        parser.add_argument('-start', action='store_true')
+        parser.add_argument('-run', action='store_true')
+        parser.add_argument('-stop', action='store_true')
+        parser.add_argument('-port', action='store', type=int, default=8888)
+	parser.add_argument('-address', action='store', default='127.0.0.1')
+        parser.add_argument('-find', action='store_true')
+        parser.add_argument('-watch', action='store_true')
+        parser.add_argument('-status', action='store_true')
+        parser.add_argument('-monitor', action='store_true')
+        parser.add_argument('-refresh', action='store', type=int, default=3)
+        parser.add_argument('-logs', action='store_true')
+        parser.add_argument('-debug', action='store_true')
+        parser.add_argument('-listener', action='store_true')
+	parser.add_argument('-adddrone', action='store_true')
+	parser.add_argument('-deldrone', action='store_true')
+	parser.add_argument('-droneurl', action='store')
+	parser.add_argument('-droneindex', action='store')
+	parser.add_argument('-loadmodule', action='store_true')
+	parser.add_argument('-unloadmodule', action='store_true')
+	parser.add_argument('-parameters', action='store')
+	parser.add_argument('-moduleindex', action='store')
+	parser.add_argument('-modulename', action='store')
+	parser.add_argument('-modulesettings', action='store')
+	parser.add_argument('-v', action='store_true')
+        args = parser.parse_args()
+
+        if args.debug:
+                debug(args)
+        if args.listener:
+                listener(args)
+        elif args.run:
+                run(args)
+        elif args.start:
+                start(args)
+        elif args.stop:
+                stop(args)
+        elif args.find:
+                find(args)
+        elif args.watch:
+                watch(args)
+        elif args.status:
+                status(args)
+        elif args.monitor:
+                monitor(args)
+        elif args.logs:
+                logs(args)
+	elif args.adddrone:
+		addDrone(args)
+	elif args.deldrone:
+		delDrone(args)
+	elif args.loadmodule:
+		loadModule(args)
+	elif args.unloadmodule:
+		unloadModule(args)
+
+
