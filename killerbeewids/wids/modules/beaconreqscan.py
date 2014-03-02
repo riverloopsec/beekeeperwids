@@ -39,9 +39,9 @@ class BeaconRequestMonitor(AnalyticModule):
         while self.active:
             #TODO this loop should only select things by UUID from the task/filter entered above
             print('Scanning for new packets.')
-            datetime_now = datetime.utcnow()
-            datetime_t30 = datetime_now - timedelta(seconds=30)
-            datetime_t30 = datetime_now - timedelta(seconds=120)
+            datetime_now  = datetime.utcnow()
+            datetime_t30  = datetime_now - timedelta(seconds=30)
+            datetime_t120 = datetime_now - timedelta(seconds=120)
             p30  = self.getPackets(queryFilter=[('datetime','>',dateToMicro(datetime_t30))])
             p120 = self.getPackets(queryFilter=[('datetime','<',dateToMicro(datetime_t30 )),
                                                 ('datetime','>',dateToMicro(datetime_t120))])
