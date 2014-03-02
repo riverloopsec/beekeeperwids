@@ -5,9 +5,6 @@ import time
 from multiprocessing import Pipe, Event, Manager
 from killerbeewids.utils import KBLogUtil
 
-#TODO - move to config
-WORKDIR = '/home/dev/etc/kb'
-
 class BaseDronePlugin(object):
     def __init__(self, interfaces, channel, drone):
         #TODO: add interface validation
@@ -25,7 +22,7 @@ class BaseDronePlugin(object):
         self.active = True
         self.desc = None
         self.pid = os.getpid()
-        self.logutil = KBLogUtil(self.drone, WORKDIR, 'PluginX', None)
+        self.logutil = KBLogUtil(self.drone, 'PluginX', None)
 
     def info(self):
         info = {}
@@ -57,7 +54,11 @@ class BaseDronePlugin(object):
         '''
         overwrite this function
         '''
+        pass
+
     def detask(self, uuid):
         '''
         overwrite this function
         '''
+        pass
+

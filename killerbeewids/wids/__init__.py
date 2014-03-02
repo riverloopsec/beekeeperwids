@@ -13,7 +13,7 @@ from collections import OrderedDict
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
 
-from killerbeewids.utils import KBLogUtil, loadModuleClass, DEFAULTCONFIG
+from killerbeewids.utils import KBLogUtil, loadModuleClass
 from killerbeewids.drone import DroneClient
 from killerbeewids.wids.database import DatabaseHandler
 from killerbeewids.wids.engine import WIDSRuleEngine
@@ -24,7 +24,7 @@ class WIDSDaemon:
         signal.signal(signal.SIGINT, self.SIGINT)
         self.config = WIDSConfig(parameters, config)
         self.config.daemon_pid = os.getpid()
-        self.logutil = KBLogUtil(self.config.name, self.config.workdir, 'Daemon', os.getpid())
+        self.logutil = KBLogUtil(self.config.name, 'Daemon', os.getpid())
         self.database = DatabaseHandler(self.config.name)
         self.engine = None
         self.module_store = {}
@@ -439,7 +439,6 @@ class WIDSConfig:
         default config parameters
         '''
         self.name = 'wids0'
-        self.workdir = '/home/dev/etc/kb'
         self.daemon_pid = None
         self.engine_pid = None
         self.server_port = 8888
@@ -453,5 +452,5 @@ class WIDSConfig:
         pass
 
     def json(self):
-        return {'name':self.name, 'workdir':self.workdir, 'daemon_pid':self.daemon_pid, 'engine_pid':self.engine_pid, 'server_port':self.server_port}
+        return {'name':self.name, 'daemon_pid':self.daemon_pid, 'engine_pid':self.engine_pid, 'server_port':self.server_port}
 
