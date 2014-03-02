@@ -4,10 +4,12 @@ import sys
 import os
 import argparse
 import subprocess
+import json
 import traceback
 from time import sleep
-from killerbeewids.wids import WIDSDaemon
+from killerbeewids.wids import WIDSDaemon,WIDSClient
 from killerbeewids.utils import KBLogUtil,KBPATH
+from killerbeewids.utils import terminal_ui
 
 def debug(args):
 	pass
@@ -24,18 +26,15 @@ def run(args):
 	'''
         starts wids instance in the terminal
         '''
-        try:
-                WIDSDaemon(args.widsid, args.port).startDaemon()
-        except Exception as e:
-                print("Failed to Start WIDS")
-                print(e)
-		traceback.print_exc()
+        w = WIDSDaemon()
+	w.startDaemon()
+	pass
 
 def stop(args):
 	'''
         sends an interrupt signal (SIGINT) to the wids daemon
         '''
-        pid = KBLogUtil('kbwids.{0}'.format(args.widsid)).getPID()
+        pid = KBLogUtil(args.name, args.workdir).getPID()
         os.system('kill -s 2 {0}'.format(pid))
 
 
@@ -44,7 +43,7 @@ def logs(args):
         tails the logfile for the daemon
         '''
         os.system('clear')
-        logfile = KBLogUtil('kbwids.{0}'.format(args.widsid)).logfilename
+        logfile = KBLogUtil(args.name, args.workdir).logfilename
         os.system('tail -F {0}'.format(logfile))
 
 
@@ -76,19 +75,34 @@ def monitor(args):
                 sleep(args.refresh)
 
 
+#TODO - factor out this code
 def status(args):
         '''
         queries the drone daemon for status information
         '''
-        c = DroneClient(args.address, args.port)
-        status = c.getStatus()
-        if status == 'unable to connect to WIDS':
-                print(status)
-                return
-        displayStatus(status)
+        json_data = WIDSClient(args.address, args.port).getStatus()
+	results = json.loads(json_data)
+	success = results['success']
+	data = results['data']
+	print('\n[+] Requesting WIDS Status:')
+	if success:
+		displayStatus(data)
+	else:
+		if args.v:
+			print('\n[!] Failed. See Traceback below:\n')
+			print(data)
+		else:
+			print('\n[!] Failed (use -v for more info)\n')
 
-def displayStatus(status):
-	print(status)
+def displayStatus(data):
+
+	print("\nKillerbee WIDS")
+
+	print(data)
+	print('\n\n')
+
+	terminal_ui.printList('Config', data['config'], order=['name', 'daemon_pid', 'engine_pid', 'server_port', 'workdir'])
+	
 
 '''
 
@@ -132,21 +146,22 @@ EventName	count
 if __name__ == '__main__':
 
         parser = argparse.ArgumentParser()
-	parser.add_argument('--config', action='store', default='{0}/wids/defaultconfig.xml'.format(KBPATH))
-	parser.add_argument('--widsid', action='store', default='0')
-        parser.add_argument('--start', action='store_true')
-        parser.add_argument('--run', action='store_true')
-        parser.add_argument('--stop', action='store_true')
-        parser.add_argument('--port', action='store', type=int, default=8888)
-        parser.add_argument('--find', action='store_true')
-        parser.add_argument('--watch', action='store_true')
-        parser.add_argument('--status', action='store_true')
-        parser.add_argument('--monitor', action='store_true')
-        parser.add_argument('--refresh', action='store', type=int, default=3)
-        parser.add_argument('--logs', action='store_true')
-        parser.add_argument('--debug', action='store_true')
-        parser.add_argument('--listener', action='store_true')
-
+	parser.add_argument('-name', action='store', default='kbwids0')
+	parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
+        parser.add_argument('-start', action='store_true')
+        parser.add_argument('-run', action='store_true')
+        parser.add_argument('-stop', action='store_true')
+        parser.add_argument('-port', action='store', type=int, default=8888)
+	parser.add_argument('-address', action='store', default='127.0.0.1')
+        parser.add_argument('-find', action='store_true')
+        parser.add_argument('-watch', action='store_true')
+        parser.add_argument('-status', action='store_true')
+        parser.add_argument('-monitor', action='store_true')
+        parser.add_argument('-refresh', action='store', type=int, default=3)
+        parser.add_argument('-logs', action='store_true')
+        parser.add_argument('-debug', action='store_true')
+        parser.add_argument('-listener', action='store_true')
+	parser.add_argument('-v', action='store_true')
         args = parser.parse_args()
 
         if args.debug:

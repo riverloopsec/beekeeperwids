@@ -1,0 +1,5 @@
+<root>
+
+<module name='BandwidthMonitor' path='killerbeewids.wids.modules.bandwidth'/>
+
+</root>

@@ -1,0 +1,6 @@
+<pluginlibrary>
+
+<plugin name='CapturePlugin' modulepath='killerbeewids.drone.plugins.capture.CapturePlugin'/>
+
+
+</pluginlibrary>

@@ -60,6 +60,7 @@ class DroneDaemon:
 		self.runChecks()
 		self.logutil.logline()
 		self.logutil.log(self.desc, "Starting DroneDaemon", self.pid)
+		self.logutil.writePID()
 		self.enumerateInterfaces()
 		self.startRestServer()
 
@@ -68,6 +69,7 @@ class DroneDaemon:
 		self.stopRunningPlugins()
 		self.logutil.log(self.desc, 'Completed shutdown', self.pid)
 		self.logutil.endlog()
+		self.logutil.deletePID()
 		# TODO: verify that all subprocess have been terminated
 		sys.exit()
 
@@ -81,7 +83,7 @@ class DroneDaemon:
 		app.add_url_rule('/task', None, self.processTaskRequest, methods=['POST'])
 		app.add_url_rule('/detask', None, self.processDetaskRequest, methods=['POST'])
 		app.add_url_rule('/status', None, self.status, methods=['POST'])
-		app.run(port=self.port)
+		app.run(port=self.port, threaded=True)
 
 	def processTaskRequest(self):
 		data = json.loads(flask.request.data)
@@ -91,25 +93,41 @@ class DroneDaemon:
 		channel = data.get('channel')
 		parameters = data.get('parameters')
 		self.logutil.log(self.desc, 'Processing Task Request: {0} ({1})'.format(uuid, pluginShortName), self.pid)
-		self.taskPlugin(pluginName, channel, uuid, parameters)
-		return "PROCESSED REQUEST\n"
-		#return "UNABLE TO PROCESS REQUEST: NO AVAILABLE INTERFACES"
+		return self.taskPlugin(pluginName, channel, uuid, parameters)
 
 	def taskPlugin(self, pluginName, channel, uuid, parameters):
 		# if plugin is not already active on specified channel, start new one
+		print(parameters)
 		pluginShortName = pluginName.split('.')[-1]
 		plugin = self.plugins.get((pluginShortName, channel), None)
 		if plugin == None:
-			self.logutil.log(self.desc, 'Starting New Plugin: ({0}, ch.{1})'.format(pluginShortName, channel), self.pid)
-			# TODO right exception handler for no available interfaces
+			self.logutil.log(self.desc, '\tNo Instance of ({0},{1}) Found - Starting New one'.format(pluginShortName, channel))
 			interface = self.getAvailableInterface()
-			# TODO right exception handler for unablailable plugin
-			pluginClass = getPlugin(pluginName)
-			plugin = pluginClass([interface], channel, self.drone)
-			self.plugins[(pluginShortName, channel)] = plugin
+			if interface == None:
+				self.logutil.log(self.desc, '\tFailed: No Avilable Interfaces', self.pid)
+				return 'FAILED TO TASK PLUGIN - NO AVAILABLE INTERFACES'
+			else:
+				self.logutil.log(self.desc, '\tAcquired Interface: {0}'.format(interface.device))
+			pluginModule = getPlugin(pluginName)
+			if pluginModule == None:
+				self.logutil.log(self.desc, '\tFailed: Plugin Module: {0} does not exist'.format(pluginName))
+				return 'FAILED TO TASK PLUGIN - MODULE DOES NOT EXIST'
+			else:
+				self.logutil.log(self.desc, '\tLoaded Plugin Module: {0}'.format(pluginModule))
+			self.logutil.log(self.desc, '\tStarting Plugin: ({0}, ch.{1})'.format(pluginShortName, channel), self.pid)
+			try:
+				plugin = pluginModule([interface], channel, self.drone)
+				self.plugins[(pluginShortName, channel)] = plugin
+			except Exception as e:
+				self.logutil.log(self.desc, '\tFAILED: Unknown exception: {0}'.format(e))
+				return 'FAILED - 1'
 		# task the plugin
-		self.logutil.log(self.desc, 'Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid), self.pid)
-		plugin.task(uuid, parameters)
+		try:
+			self.logutil.log(self.desc, 'Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid), self.pid)
+			plugin.task(uuid, parameters)
+			return "SUCCESS"
+		except Exception as e:
+			return "FAILED - 2"
 
 	def processDetaskRequest(self):
 		data = json.loads(flask.request.data)
@@ -152,7 +170,7 @@ class DroneDaemon:
 		for interface in kbutils.devlist():
 			device = interface[0]
 			description = interface[1]
-			self.logutil.log(self.desc, "Added new interface: {0}".format(device), self.pid)
+			self.logutil.log(self.desc, "\tAdded new interface: {0}".format(device), self.pid)
 			self.interfaces[device] = KBInterface(device)
 
 	def status(self):
@@ -191,12 +209,12 @@ class DroneClient:
 	def getInterfaces(self):
 		pass
 
-	def taskPlugin(self, pluginName, channel, uuid, parameters):
+	def task(self, pluginName, channel, uuid, parameters):
 		resource = '/task'
 		data = {'plugin':pluginName, 'channel':channel, 'uuid':uuid, 'parameters':parameters}
 		return self.sendRequest(self.address, self.port, resource, data)		
 
-	def detaskPlugin(self, uuid):
+	def detask(self, uuid):
 		resource = '/detask'
 		parameters = {'uuid':uuid}
 		return self.sendRequest(self.address, self.port, resource, parameters)
@@ -213,14 +231,19 @@ class DroneClient:
 		request_object = urllib2.Request(url, post_data_json, http_headers)
 		try:
 			response_object = urllib2.urlopen(request_object)
-			response_string = response_object.read()
-			return response_string
 		except:
 			return "unable to connect to drone"
 
+		try:
+			response_string = response_object.read()
+			return response_string
+		except:
+			return "unable to read response object"
 
-
-
+class DroneCodes:
+	def __init__(self):
+		self.SUCCESS = '0'
+		self.TASKPLUGIN_FAILURE_UNAVILABLE_INTERFACES = '1'
 
 
 

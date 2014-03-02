@@ -5,9 +5,9 @@ from multiprocessing import Process
 
 class WIDSRuleEngine(Process):
 
-	def __init__(self, config):
+	def __init__(self, rules=[]):
 		Process.__init__(self)
-		self.config = config
+		self.rules = rules
 
 
 	def run(self):

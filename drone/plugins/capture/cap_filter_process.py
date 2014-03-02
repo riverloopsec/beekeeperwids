@@ -10,7 +10,7 @@ import urllib2
 import json
 import os
 
-from killerbeewids.utils import KBLogUtil
+from killerbeewids.utils import KBLogUtil, dateToMicro
 
 class FilterProcess(Process):
     def __init__(self, pipe, task_pipe, stopevent, task_update_event, drone, parent):
@@ -29,7 +29,8 @@ class FilterProcess(Process):
     def do_callback(self, uuid, cburl, pkt):
 	# @ryan: below are hacks to bypass formatting/encoding errors, could you look into them?
 	# there were some UTF encoding errors for the raw bytes
-	pkt['datetime'] = str(pkt['datetime'])
+	pkt['uuids'] = [uuid]
+	pkt['datetime'] = dateToMicro(pkt['datetime'])
 	pkt['bytes'] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt['bytes'] ] ).strip()
 	pkt[0] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt[0] ] ).strip()
 	http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'Drone'}
