@@ -66,4 +66,3 @@ class FcfCmdPacketFilter(BasicPacketFilter):
         self.add_fcf_check(0x0300, 0x0300)
 
 #BeaconRequestFilter(BasicPacketFilter):
-
