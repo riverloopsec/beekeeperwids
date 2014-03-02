@@ -60,8 +60,12 @@ class BeaconRequestMonitor(AnalyticModule):
             #   packets which were seen between t-30 seconds ago and t-150
             #   seconds ago / 5. Seeing the last 30 seconds higher than the
             #   average of the previous time detects a spike.
-            if (n30 > 0 and an90 == 0) or ((float(n30)/an90) > 1.5):
-                self.logutil.log("Noticed increased beacon requests. Ratio {0}.".format( (float(n30)/an90) ))
+            try:
+                ratio = float(n30)/an90
+                if ratio > 1.5:
+                    self.logutil.log("Noticed increased beacon requests. Ratio {0}.".format(ratio))
+            except ZeroDivisonError:
+                self.logutil.log("No 30 secs - 120 sec old beacon request data.")
             
             time.sleep(5)
 
