@@ -3,7 +3,7 @@
 import os
 import sys
 import base64
-from killerbeewids.utils import KBDIR
+from killerbeewids.utils import KB_CONFIG_PATH
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -26,9 +26,7 @@ class Packet(Base):
     bytes = Column(String(150))
 
     def __init__(self, pktdata):
-
         print(pktdata)
-
         self.datetime = int(pktdata.get('datetime'))
         self.source = str(pktdata.get('location'))
         self.dbm = str(pktdata['dbm'])
@@ -47,7 +45,7 @@ http://docs.sqlalchemy.org/en/rel_0_9/orm/tutorial.html
 '''
 
 class DatabaseHandler:
-    def __init__(self, database, path=KBDIR):
+    def __init__(self, database, path=KB_CONFIG_PATH):
         self.engine = create_engine("sqlite:///{0}/{1}.db".format(path, database), echo=False)
         if not os.path.isfile(database):
             self.createDB()
