@@ -36,10 +36,13 @@ class BeaconRequestMonitor(AnalyticModule):
         while self.active:
             #TODO this loop should only select things by UUID from the task/filter entered above
 	    print('scanning for new packets')
-            for packet in self.getNewPackets(uuid=[uuid_task1]):
+            #for packet in self.getNewPackets(uuid=[uuid_task1]):
                 #TODO our loop will probably switch to running every 30 secs,
                 #   either on a timer or using sleep, rather than calling getNewPackets
-                print "Found a beacon request packet:", packet.encode('hex')
+
+                #print "Found a beacon request packet:", packet.encode('hex')
+
+
                 # Every N scans, or every time a new "block" of scans occurs,
                 #   rasise an "informational level" event.
                 #TODO

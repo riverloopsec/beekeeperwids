@@ -2,6 +2,7 @@
 
 import os
 import sys
+import base64
 from killerbeewids.utils import KBDIR
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -14,41 +15,6 @@ class Event(Base):
 '''
 
 
-class TaskRequest(Base):
-	__tablename__ = 'taskrequest'
-	id = Column(Integer, primary_key=True)
-	channel = Column(Integer)
-	plugin = Column(String(100))
-	parameters = Column(PickleType)
-	uuid = Column(String(100))
-	complete = Column(Boolean)
-	def __init__(self, uuid, plugin, channel, parameters):
-		self.plugin = plugin
-		self.channel = channel
-		self.parameters = parameters
-		self.uuid = uuid
-		self.complete = False
-
-
-class Message(Base):
-	__tablename__ = 'message'
-	id = Column(Integer, primary_key=True)
-	messageid = Column(Integer)
-	src = Column(String(250))
-	dst = Column(String(250))
-	code = Column(String(250))
-	request_data = Column(PickleType)
-	response_data = Column(PickleType)
-	resolved = Column(Boolean())
-	
-	def __init__(self, messageid, src, dst, code, request_data):
-		self.messageid = messageid
-		self.src = src
-		self.dst = dst
-		self.code = code
-		self.request_data = request_data
-		self.response_data = None
-		self.resolved = False
 
 
 class Packet(Base):
@@ -59,16 +25,20 @@ class Packet(Base):
 	dbm = Column(Integer)
 	rssi = Column(Integer())
 	validcrc = Column(String(250))
-	uuids = Column(PickleType)
+	uuid = Column(String(250))
+	bytes = Column(String(150))
 
 	def __init__(self, pktdata):
+
+		print(pktdata)
+
 		self.datetime = int(pktdata.get('datetime'))
 		self.source = str(pktdata.get('location'))
                 self.dbm = str(pktdata['dbm'])
-                #self.bytes = str(data['bytes'])
                 self.rssi = int(pktdata['rssi'])
+		self.uuid = str(pktdata['uuid'])
                 #self.validcrc = str(pktdata['validcrc'])
-		self.uuids = pktdata['uuids']
+                self.bytes = str(base64.base64decode(data['bytes']))
 
 	def display(self):
 		print(self.id, self.datetime, self.source, self.dbm, self.rssi)

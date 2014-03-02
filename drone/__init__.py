@@ -13,9 +13,10 @@ import subprocess
 import random
 import json
 import signal
+import traceback
 from uuid import uuid4 as generateUUID
 from killerbee import kbutils
-from killerbeewids.utils import KBLogUtil, KBInterface, getPlugin
+from killerbeewids.utils import KBLogUtil, KBInterface, loadPluginClass
 
 # TODO - move this to config file
 WORKDIR = '/home/dev/etc/kb'
@@ -38,6 +39,13 @@ class DroneDaemon:
 			signal.signal(signal.SIGINT, signal.SIG_IGN)
 			self.shutdown = True
 			self.shutdownDaemon()
+
+        def handleException(self):
+                etb = traceback.format_exc()
+		print(etb)
+                self.logutil.trace(etb)
+                return json.dumps({'success':False, 'data':str(etb)})
+
 
 	def runChecks(self):
 		try:		
@@ -85,16 +93,53 @@ class DroneDaemon:
 		app.run(port=self.port, threaded=True)
 
 	def processTaskRequest(self):
-		data = json.loads(flask.request.data)
-		uuid = data.get('uuid')
-		pluginName = data.get('plugin')
-		pluginShortName = pluginName.split('.')[-1]
-		channel = data.get('channel')
-		parameters = data.get('parameters')
-		self.logutil.log('Processing Task Request: {0} ({1})'.format(uuid, pluginShortName))
-		return self.taskPlugin(pluginName, channel, uuid, parameters)
+		try:
+			data = json.loads(flask.request.data)
+			uuid = data.get('uuid')
+			plugin = data.get('plugin')
+			channel = data.get('channel')
+			parameters = data.get('parameters')
+			self.logutil.log('Processing Task Request: {0} ({1})'.format(uuid, plugin))
+			return self.taskPlugin(plugin, channel, uuid, parameters)
+		except:
+			return self.handleException()
 
-	def taskPlugin(self, pluginName, channel, uuid, parameters):
+	def taskPlugin(self, plugin, channel, uuid, parameters):
+		pluginObject = self.plugins.get((plugin,channel), None)
+		if pluginObject == None:
+			self.logutil.log('\tNo Instance of ({0},{1}) Found - Starting New one'.format(plugin, channel))
+
+			try:
+				# get interface
+				interface = self.getAvailableInterface()
+				if interface == None:
+					self.logutil.log('\tFailed: No Avilable Interfaces')
+					return {'success':False}
+				self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
+				# load class
+				pluginClass = loadPluginClass(plugin)
+				if pluginClass == None:
+					self.logutil.log('\tFailed: Plugin Module: {0} does not exist'.format(plugin))
+					return {'success':False}
+				self.logutil.log('\tLoaded Plugin Class: {0}'.format(pluginClass))
+				# start plugin
+				pluginObject = pluginClass([interface], channel, self.name)
+				self.plugins[(plugin,channel)] = pluginObject
+				self.logutil.log('\tInitialized Plugin')
+			except Exception:
+				self.handleException()
+
+
+		# task plugin
+		try:
+			self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(plugin, channel, uuid))
+			pluginObject.task(uuid, parameters)
+			return json.dumps({'success':True})
+		except Exception:
+			self.handleException()
+
+		'''
+		#TODO -cleanup exception handlers
 		# if plugin is not already active on specified channel, start new one
 		print(parameters)
 		pluginShortName = pluginName.split('.')[-1]
@@ -109,17 +154,23 @@ class DroneDaemon:
 				self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
 			pluginModule = getPlugin(pluginName)
 			if pluginModule == None:
-				self.logutil.log('\tFailed: Plugin Module: {0} does not exist'.format(pluginName))
 				return 'FAILED TO TASK PLUGIN - MODULE DOES NOT EXIST'
 			else:
 				self.logutil.log('\tLoaded Plugin Module: {0}'.format(pluginModule))
 			self.logutil.log('\tStarting Plugin: ({0}, ch.{1})'.format(pluginShortName, channel))
+
 			try:
-				plugin = pluginModule([interface], channel, self.drone)
+				print('break A')
+				print(pluginModule)
+				plugin = pluginModule([interface], channel, self.name)
+				import blahblah
+				print('break B')
 				self.plugins[(pluginShortName, channel)] = plugin
-			except Exception as e:
+				print('break C')
+			except Exception:
 				self.logutil.log('\tFAILED: Unknown exception: {0}'.format(e))
-				return 'FAILED - 1'
+				self.handleException()
+
 		# task the plugin
 		try:
 			self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid))
@@ -127,6 +178,8 @@ class DroneDaemon:
 			return "SUCCESS"
 		except Exception as e:
 			return "FAILED - 2"
+		'''
+
 
 	def processDetaskRequest(self):
 		data = json.loads(flask.request.data)
@@ -191,10 +244,10 @@ class DroneClient:
 		
 	def testTask(self):
 		plugin = 'killerbeewids.drone.plugins.capture.CapturePlugin'
-		channel = 11
+		channel = 15
 		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'
 		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
-		return self.taskPlugin(plugin, channel, uuid, parameters)
+		return self.task(plugin, channel, uuid, parameters)
 
 	def testDetask(self):
 		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'

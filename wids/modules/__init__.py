@@ -24,7 +24,7 @@ class AnalyticModule(Process):
 		self.running = False
                 self.database = DatabaseHandler(self.config.name)
                 self.logutil = KBLogUtil(self.config.name, self.config.workdir, self.name, None)
-		self.widsclient = WIDSClient('127.0.0.1', 9999)
+		self.widsclient = WIDSClient('127.0.0.1', 8888)
 
 
         def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters):
@@ -33,8 +33,8 @@ class AnalyticModule(Process):
 		result = json.loads(json_result)
 		success = result.get('success')
 		if success:
-			self.tasks[uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters}
-			return uuid
+			self.tasks[task_uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters}
+			return task_uuid
 		else:
 			return None
 

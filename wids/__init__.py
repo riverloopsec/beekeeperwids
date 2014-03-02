@@ -82,14 +82,15 @@ class WIDSDaemon:
 
 	def loadDrone(self, droneConfigDict):
 		try:
-			drone_url = str(droneConfigDict.get('url', None))
-			if drone_url == None:
-				error = 'Error: Missing Parameter: "url"'
+			drone_address = str(droneConfigDict.get('address', None))
+			drone_port = str(droneConfigDict.get('port', None))
+			if drone_address == None or drone_port == None:
+				error = 'Error: Missing Parameter: "address"'
 				self.logutil.log(error)
 				return self.resultMessage(False, error)
 			else:
 				droneIndex = self.drone_counter
-				droneObject = Drone(droneIndex, drone_url)
+				droneObject = Drone(droneIndex, drone_address, drone_port)
 				self.drone_store[droneIndex] = droneObject
 				self.drone_counter += 1
 				self.logutil.log('\tLoading Drone {0} (URL: {1})'.format(droneIndex, droneObject.url))
@@ -234,17 +235,15 @@ class WIDSDaemon:
 	def resultMessage(self, status, message):
 		return json.dumps({'success':status, 'message':message})
 
-	def processDataUpload(self, message):
+	def processDataUpload(self):
 		self.logutil.log('Processing Data Upload')
 		try:
 			data = json.loads(flask.request.data)
                 	packetdata = data.get('pkt')
                 	self.database.storePacket(packetdata)
-			return "SUCCESS"
+			return json.dumps({'success':True})
 		except Exception:
-			self.logutil.log('\tFailed to Process Data Upload')
-			traceback.print_exc()
-			return "FAILURE"
+			self.handleException()
 
 
 	def processDataDownload(self):
@@ -396,14 +395,17 @@ class Module:
 		return {'index':self.index, 'name':self.name, 'settings':self.settings, 'process':self.process.pid}
 
 class Drone:
-	def __init__(self, index, url):
+	def __init__(self, index, address, port):
 		self.index = index
-		self.url = url
+		self.address = address
+		self.port = port
+		self.url = 'X'
 		self.tasks = {}
 		self.plugins = {}
 		self.id = None
 		self.status = None
 		self.heartbeat = None
+		self.client = DroneClient(self.address, self.port)
 	def release(self):
 		#TODO - implement drone release
 		pass
@@ -442,7 +444,7 @@ class WIDSConfig:
 		self.server_port = 8888
 		self.server_ip = '127.0.0.1'
 		self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_ip)
-		self.drones = [{'id':'drone11', 'url':'http://127.0.0.1:9999'}]
+		self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
 		self.modules = [{'name':'BeaconRequestMonitor', 'settings':{}}]
 			
 	def loadParameters(self, parameters):

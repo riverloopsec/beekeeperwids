@@ -3,6 +3,10 @@ The class which is used by launch.py via Multiprocessing to handle
 the capturing of packets and passing them to the FilterProcess stage.
 rmspeers 2013 riverloopsecurity.com
 '''
+
+WORKDIR = '/home/dev/etc/kb'
+
+
 import os
 from multiprocessing import Process
 
@@ -20,23 +24,23 @@ class SnifferProcess(Process):
         self.kb   = kb
         self.stopevent = stopevent
         self.desc = '{0}.Sniffer'.format(parent)
-        self.logutil = KBLogUtil(drone)
+        self.logutil = KBLogUtil(drone, WORKDIR, 'SnifferProcess', None)
 
     def run(self):
         '''
         Start receiving and returning packets until the stopevent
         flag is set.
         '''
-        self.logutil.log(self.desc, 'Initializing', self.pid)
-	self.logutil.log(self.desc, 'Turning on interface: {0}'.format(self.kb.device), self.pid)
+        self.logutil.log('Initializing')
+	self.logutil.log('Turning on interface: {0}'.format(self.kb.device))
         self.kb.sniffer_on()
         while not self.stopevent.is_set():
             recvpkt = self.kb.pnext() #nonbocking
             # Check for empty packet (timeout) and valid FCS
             if recvpkt is not None:# and recvpkt[1]:
-		self.logutil.log(self.desc, "Received Frame", self.pid, 'DEBUG')
+		self.logutil.log("Received Frame")
                 self.pipe.send(recvpkt)
-	self.logutil.log(self.desc, 'Turning off interface: {0}'.format(self.kb.device), self.pid)
+	self.logutil.log('Turning off interface: {0}'.format(self.kb.device))
         self.kb.sniffer_off()
-	self.logutil.log(self.desc, 'Terminating Execution', self.pid)
+	self.logutil.log('Terminating Execution')
 

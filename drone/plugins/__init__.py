@@ -5,9 +5,13 @@ import time
 from multiprocessing import Pipe, Event, Manager
 from killerbeewids.utils import KBLogUtil
 
+#TODO - move to config
+WORKDIR = '/home/dev/etc/kb'
+
 class BaseDronePlugin(object):
     def __init__(self, interfaces, channel, drone):
         #TODO: add interface validation
+
         self.interfaces = interfaces
         self.kb = None
         self.channel = channel
@@ -21,7 +25,7 @@ class BaseDronePlugin(object):
         self.active = True
         self.desc = None
         self.pid = os.getpid()
-        self.logutil = KBLogUtil(self.drone)
+        self.logutil = KBLogUtil(self.drone, WORKDIR, 'PluginX', None)
 
     def info(self):
         info = {}
@@ -34,7 +38,7 @@ class BaseDronePlugin(object):
         return info
 
     def shutdown(self):
-        self.logutil.log(self.desc, 'Initiating shutdown', self.pid)
+        self.logutil.log('Initiating shutdown')
         self.done_event.set()
         for process in self.childprocesses:
             if process.is_alive():
@@ -47,7 +51,7 @@ class BaseDronePlugin(object):
         self.active = False
         #self.kb.plugin = None
         self.kb.active = False
-        self.logutil.log(self.desc, 'Successful shutdown', self.pid)
+        self.logutil.log('Successful shutdown')
 
     def task(self, uuid, data):
         '''

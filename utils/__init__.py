@@ -59,6 +59,30 @@ def loadModuleClass(name):
 		p = None
 	return p
 
+def loadPluginClass(name):
+	# step 1 - load library of available modules
+	library = {}
+	filepath = '{0}/drone/plugins/plugins.xml'.format(KBPATH)
+	root = ET.parse(filepath).getroot()
+	for plugin in root.findall('plugin'):
+		name = plugin.get('name')
+		path = plugin.get('path')
+		library[name] = path
+
+
+	# step 2 - check if requested module is in library, if not return None
+	if not name in library.keys():
+		return None
+
+	# step 3 - load library class
+	path = library[name]
+	try:
+		p = getattr(__import__(str(path), fromlist=[str(name)]), str(name))
+	except(ImportError, AttributeError, ValueError) as e:
+		print(e)
+		p = None
+	return p
+
 def checkDronePlugin(name):
 	'''
 	checks if the plugin exists
