@@ -8,7 +8,8 @@ import json
 import traceback
 from time import sleep
 
-from killerbeewids.wids import WIDSDaemon,WIDSClient
+from killerbeewids.wids import WIDSDaemon
+from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil
 from killerbeewids.utils import terminal_ui
 

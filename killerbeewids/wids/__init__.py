@@ -449,7 +449,7 @@ class WIDSConfig:
         self.engine_pid = None
         self.server_port = 8888
         self.server_ip = '127.0.0.1'
-        self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_ip)
+        self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_port)
         self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
         self.modules = [{'name':'BeaconRequestMonitor', 'settings':{}}]
 

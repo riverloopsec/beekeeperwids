@@ -5,7 +5,7 @@ import json
 from uuid import uuid4
 from multiprocessing import Process
 from killerbeewids.wids.database import *
-from killerbeewids.wids import WIDSClient
+from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil
 
 # TODO - incorporate shutdown event & implement proper shutdown sequence
