@@ -26,6 +26,7 @@ def run(args):
 	'''
         starts wids instance in the terminal
         '''
+	print("== Staring WIDS ==")
         w = WIDSDaemon()
 	w.startDaemon()
 	pass
@@ -37,6 +38,29 @@ def stop(args):
         pid = KBLogUtil(args.name, args.workdir).getPID()
         os.system('kill -s 2 {0}'.format(pid))
 
+
+def addDrone(args):
+	'''
+	sends request to load a new drone to the WIDS
+	'''
+        json_data = WIDSClient(args.address, args.port).addDrone(args.droneurl)
+	print(json_data)
+
+
+def delDrone(args):
+	'''
+	sends request to delete drone from WIDS config
+	'''
+	json_data = WIDSClient(args.address, args.port).delDrone(args.droneindex)
+	print(json_data)
+
+def loadModule(args):
+	json_data = WIDSClient(args.address, args.port).loadModule(args.modulename, args.modulesettings)
+	print(json_data)
+
+def unloadModule(args):
+	json_data = WIDSClient(args.address, args.port).unloadModule(args.moduleindex)
+	print(json_data)
 
 def logs(args):
         '''
@@ -95,52 +119,12 @@ def status(args):
 			print('\n[!] Failed (use -v for more info)\n')
 
 def displayStatus(data):
-
-	print("\nKillerbee WIDS")
-
-	print(data)
-	print('\n\n')
-
 	terminal_ui.printList('Config', data['config'], order=['name', 'daemon_pid', 'engine_pid', 'server_port', 'workdir'])
+	terminal_ui.printTable('Drones', data['drones'], order=['id', 'status', 'url', 'tasks', 'plugins', 'heartbeat'])
+	terminal_ui.printTable('Modules', data['modules'])
+	terminal_ui.printTable('Tasks', data['tasks'])
+	terminal_ui.printTable('Rules', data['rules'])
 	
-
-'''
-
-KillerbeeWIDS
-
-Processes
-=========
-
-Daemon	..	..	..
-Server	..	..	..
-Enginer	..	..	..	
-
-Drones
-========
-
-Drone0
-Drone1
-
-Plugins
-========
-
-Bandwidth ..	..	..	
-
-	Task 11111	..	..	..  3248 Packets
-
-Dissassoc ..	..	..
-
-	Task 2222 	..	..	.. 394 Packets
-
-
-Events
-=======
-
-EventName	count
-EventName	count
-
-
-'''
 
 
 if __name__ == '__main__':
@@ -161,6 +145,16 @@ if __name__ == '__main__':
         parser.add_argument('-logs', action='store_true')
         parser.add_argument('-debug', action='store_true')
         parser.add_argument('-listener', action='store_true')
+	parser.add_argument('-adddrone', action='store_true')
+	parser.add_argument('-deldrone', action='store_true')
+	parser.add_argument('-droneurl', action='store')
+	parser.add_argument('-droneindex', action='store')
+	parser.add_argument('-loadmodule', action='store_true')
+	parser.add_argument('-unloadmodule', action='store_true')
+	parser.add_argument('-parameters', action='store')
+	parser.add_argument('-moduleindex', action='store')
+	parser.add_argument('-modulename', action='store')
+	parser.add_argument('-modulesettings', action='store')
 	parser.add_argument('-v', action='store_true')
         args = parser.parse_args()
 
@@ -184,5 +178,13 @@ if __name__ == '__main__':
                 monitor(args)
         elif args.logs:
                 logs(args)
+	elif args.adddrone:
+		addDrone(args)
+	elif args.deldrone:
+		delDrone(args)
+	elif args.loadmodule:
+		loadModule(args)
+	elif args.unloadmodule:
+		unloadModule(args)
 
 

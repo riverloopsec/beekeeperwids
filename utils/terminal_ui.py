@@ -8,7 +8,8 @@ def printList(section, data, order=None):
 	prints a dictionary of data as a 2-dimensional table and auto computes the spacing
 	'''
 	spacing = (max(list(len(str(s)) for s in data.keys()))+1)
-	print('\n[+]{0}\n'.format(section))
+	print('\n' + '='*70)
+	print('\n[+] {0}\n'.format(section))
 	if not order == None:
 		keys = data.keys()
 	else:
@@ -19,9 +20,37 @@ def printList(section, data, order=None):
 
 
 
-def printTable(section, table_dict_list):
-	#print('///print table///')
-	print('[+] {0}'.format(section))
+def printTable(section, data, order=None):
+
+	print('\n' + '='*70)
+	print('\n[+] {0}\n'.format(section))
+	if len(data) == 0:
+		return
+
+	headers = {}
+	for key in data[0].keys():
+		v_max = len(max(list(str(d[key]) for d in data)))
+		k_max = max(list(len(str(s)) for s in data[0].keys()))
+		headers[key] = max([v_max,k_max]) + 3
+	s1 = ''
+	s2 = ''
+	
+	for key,spacing in headers.items():
+		s1 += str(key).ljust(spacing)
+		s2 += str('-'*len(str(key))).ljust(spacing)
+	print(s1)
+	print(s2)
+	for line in data:
+		s = ''
+		for key,spacing in headers.items():
+			s += str(line[key]).ljust(spacing)
+		print(s)
+
+
+
+
+
+	
 	
 	
 def printSeparator():
@@ -29,41 +58,6 @@ def printSeparator():
 
 
 '''
-
--------------------------------------------------------------------------------------------------------------------
-
-{
-	'general' : {
-			'name' : 'xxx'
-			'daemon.pid' : 'xxx'
-		    }
-
-	'drones' : [
-			{'index' : 0, 'name':'kbdrone.0', 'url':'http:', 'tasks':4, 'plugins':1, 'interfaces':0/2 }
-		   ]
-
-	'plugins': [
-			{'pid':xxxx, 'name':xxxxx, 'events':xxxxx}
-		   ]
-
-	'tasks':  [
-			{'index':0, 'plugin':xxxx, 'drone':xxxx, 'uuid':xxxxx}
-	          ]
-}
-
-
--------------------------------------------------------------------------------------------------------------------
-
-[+] DAEMON
-
-NAME     : xxxxx
-DAEMON   : xxxxx
-ENGINE   : xxxxx
-SERVER   : http://127.0.0.1:8888
-LOGFILE  : /home/dev/etc/kb/kbwids.0.log
-PIDFILE  : /home/dev/etc/kb/kbwids.0.pid 
-DATABASE : /home/dev/etc/kb/kbwids.0.db
-
 ================================================================
 
 [+] DRONES

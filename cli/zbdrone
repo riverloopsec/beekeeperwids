@@ -6,21 +6,22 @@ import subprocess
 import argparse
 import json
 import flask
+import traceback
 from time import sleep
 from killerbeewids.drone import DroneClient,DroneDaemon
 from killerbeewids.utils import KBLogUtil,checkDronePlugin
 
 def debug(args):
-	os.system('gnome-terminal --geometry 228x8-1+29 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone --watch"')
-	os.system('gnome-terminal --geometry 145x32+3913+207 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone --logs"')
-	os.system('gnome-terminal --geometry 80x47-6+206 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone --monitor"')
+	os.system('gnome-terminal --geometry 228x8-1+29 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -watch"')
+	os.system('gnome-terminal --geometry 145x32+3913+207 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -logs"')
+	os.system('gnome-terminal --geometry 80x47-6+206 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -monitor"')
 	os.system('gnome-terminal --geometry 146x12+3907+806')
 
 def start(args):
 	'''
 	starts a drone instance in the background
 	'''
-	cmd = 'zbdrone --run --droneid {0} --port {1}'.format(args.droneid, args.port).split(' ')
+	cmd = 'zbdrone -run -name {0} -port {1}'.format(args.name, args.port).split(' ')
 	DEVNULL = open(os.devnull, 'w')
 	subprocess.Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
@@ -30,16 +31,15 @@ def run(args):
 	starts a drone instance in the terminal
 	'''
 	try:
-		DroneDaemon(args.droneid, args.port).startDaemon()
-	except Exception as e:
-		print("Failed to Start Drone")
-		print(e)
+		DroneDaemon(args.name, args.port).startDaemon()
+	except Exception:
+		traceback.print_exc()
 
 def stop(args):
 	'''
 	sends an interrupt signal (SIGINT) to the drone process
 	'''	
-	pid = KBLogUtil('kbdrone.{0}'.format(args.droneid)).getPID()
+	pid = KBLogUtil(args.name, args.workdir).getPID()
 	os.system('kill -s 2 {0}'.format(pid))
 
 def restart(args):
@@ -117,7 +117,7 @@ def logs(args):
 	tails the logfile for the daemon
 	'''
 	os.system('clear')
-	logfile = KBLogUtil('kbdrone.{0}'.format(args.droneid)).logfilename
+	logfile = KBLogUtil(args.name, args.workdir).logfilename
 	os.system('tail -F {0}'.format(logfile))
 
 
@@ -200,28 +200,30 @@ def displayStatus(json_data):
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--start', action='store_true')
-	parser.add_argument('--run', action='store_true')
-	parser.add_argument('--stop', action='store_true')
-	parser.add_argument('--kill', action='store_true')
-	parser.add_argument('--droneid', action='store', default='0')
-	parser.add_argument('--address', action='store', default='127.0.0.1')
-	parser.add_argument('--port', action='store', type=int, default=9999)
-	parser.add_argument('--task', action='store_true')
-	parser.add_argument('--detask', action='store_true')
-	parser.add_argument('--uuid', action='store')
-	parser.add_argument('--channel', action='store')
-	parser.add_argument('--plugin', action='store')
-	parser.add_argument('--filter', action='store')
-	parser.add_argument('--callback', action='store')
-	parser.add_argument('--find', action='store_true')
-	parser.add_argument('--watch', action='store_true')
-	parser.add_argument('--status', action='store_true')
-	parser.add_argument('--monitor', action='store_true')
-	parser.add_argument('--refresh', action='store', type=int, default=3)
-	parser.add_argument('--logs', action='store_true')
-	parser.add_argument('--debug', action='store_true')
-	parser.add_argument('--listener', action='store_true')
+	parser.add_argument('-start', action='store_true')
+	parser.add_argument('-run', action='store_true')
+	parser.add_argument('-stop', action='store_true')
+	parser.add_argument('-kill', action='store_true')
+	parser.add_argument('-droneid', action='store', default='0')
+	parser.add_argument('-name', action='store', default='drone0')
+	parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
+	parser.add_argument('-address', action='store', default='127.0.0.1')
+	parser.add_argument('-port', action='store', type=int, default=9999)
+	parser.add_argument('-task', action='store_true')
+	parser.add_argument('-detask', action='store_true')
+	parser.add_argument('-uuid', action='store')
+	parser.add_argument('-channel', action='store')
+	parser.add_argument('-plugin', action='store')
+	parser.add_argument('-filter', action='store')
+	parser.add_argument('-callback', action='store')
+	parser.add_argument('-find', action='store_true')
+	parser.add_argument('-watch', action='store_true')
+	parser.add_argument('-status', action='store_true')
+	parser.add_argument('-monitor', action='store_true')
+	parser.add_argument('-refresh', action='store', type=int, default=3)
+	parser.add_argument('-logs', action='store_true')
+	parser.add_argument('-debug', action='store_true')
+	parser.add_argument('-listener', action='store_true')
 
 	args = parser.parse_args()
 

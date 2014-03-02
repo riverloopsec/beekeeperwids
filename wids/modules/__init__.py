@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
-from uuid import uuid4
 import os
-from killerbeewids.wids.database import *
+import json
+from uuid import uuid4
 from multiprocessing import Process
-
-import killerbeewids.wids.database as db
+from killerbeewids.wids.database import *
+from killerbeewids.wids import WIDSClient
 from killerbeewids.utils import KBLogUtil
 
 # TODO - incorporate shutdown event & implement proper shutdown sequence
@@ -13,55 +13,54 @@ from killerbeewids.utils import KBLogUtil
 
 class AnalyticModule(Process):
 
-        def __init__(self, parameters, config, name):
+        def __init__(self, settings, config, name):
                 Process.__init__(self)
                 self.name = name
-		self.parameters = parameters
+		self.settings = settings
                 self.config = config
-		self.logutil = None
-		self.db = None
-
 		self.tasks = {}
-                self.lastPacket = 0
-		self.active = True
+                self.lastPacketIndex = 0
+		self.active = False
+		self.running = False
+                self.database = DatabaseHandler(self.config.name)
+                self.logutil = KBLogUtil(self.config.name, self.config.workdir, self.name, None)
+		self.widsclient = WIDSClient('127.0.0.1', 9999)
 
 
-	def configure(self):
-		print('configuring module')
-                self.database = db.DatabaseHandler(self.config.name)
-                self.logutil = KBLogUtil(self.config.name, self.config.workdir, self.name, os.getpid())
-
-
-        def taskDrone(self, plugin, channel, parameters):
-		uuid = (uuid4())
-                mID = self.database.storeTaskRequest(uuid, plugin, channel, parameters)
-
-		# figure out how to wait until messages is resolve
-
-		if result:
-			self.tasks[uuid] = {'plugin':plugin, 'channel':channel, 'parameters':parameters}
+        def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters):
+		task_uuid = str((uuid4()))
+		json_result = self.widsclient.taskDrone(droneIndexList, task_uuid, task_plugin, task_channel, task_parameters)
+		result = json.loads(json_result)
+		success = result.get('success')
+		if success:
+			self.tasks[uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters}
 			return uuid
 		else:
 			return None
 
 
+	def filterIN(objectType, List):
+		return 
+
         def detaskDrone(self, uuid, plugin, channel, parameters):
-		#mID = self.database.storeMessagre(....)
                 pass
 
 
         def getPackets(self, queryFilter=[], uuid=[]):
-		query = db.session.query(Packet)
+		query = self.database.session.query(Packet)
+		if not len(uuid) == 0:
+			query.filter(Packet.uuid.in_(uuid))
 		for key,operator,value in queryFilter:
 			#print(key,operator,value)
 			query = query.filter('{0}{1}{2}'.format(key,operator,value))
 		results = query.all()
 		return results
 
-        def getNewPackets(self, queryFilter=[]):
-		queryFilter.append(('id','>',self.lastPacket))
-		results = self.getPackets(queryFilter)
-		self.lastPacket = results[-1].id
+        def getNewPackets(self, queryFilter=[], uuid=[]):
+		queryFilter.append(('id','>',self.lastPacketIndex))
+		results = self.getPackets(queryFilter, uuid)
+		if len(results) > 0:
+			self.lastPacketIndex = results[-1].id
 		return results
 
         def getEvents(self):
@@ -80,17 +79,15 @@ class AnalyticModule(Process):
                 '''
                 this function will detask all the running tasks on the drone prior to shutdown
                 '''
+		pass
 
         def shutdown(self):
-		self.logutil.log('Received Shutdown Request')
-		# set active flag to False, and wait for main executing to stop running
+		self.logutil.log('\t\tReceived Shutdown Request')
 		self.active = False
 		while self.running:
 			pass
-		# send signal to drone to remove all tasking
                 self.detaskAll()
-		# execute cleanup procedures
                 self.cleanup()
-		self.logutil.log('\tModule Shutdown Complete')
-
+		self.logutil.log('\t\t\tModule Shutdown Complete')
+		self.terminate()
 

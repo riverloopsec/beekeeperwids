@@ -19,8 +19,8 @@ class BandwidthMonitor(AnalyticModule):
         self.packet_count = 0
 
     def run(self):
-	self.configure()
         self.logutil.log('Starting Execution')
+	self.active = True
 	self.running = True
 
 	'''

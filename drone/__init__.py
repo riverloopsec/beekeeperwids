@@ -17,17 +17,16 @@ from uuid import uuid4 as generateUUID
 from killerbee import kbutils
 from killerbeewids.utils import KBLogUtil, KBInterface, getPlugin
 
+# TODO - move this to config file
+WORKDIR = '/home/dev/etc/kb'
 
 class DroneDaemon:
 
-	def __init__(self, drone_id, port):
+	def __init__(self, name, port):
 		signal.signal(signal.SIGINT, self.SIGINT)
-		self.drone_id = drone_id
 		self.port = port
-		self.name = 'kbdrone.{0}'.format(self.drone_id)
-		self.drone = 'kbdrone.{0}'.format(self.drone_id)
-		self.desc = 'DroneDaemon'
-		self.logutil = KBLogUtil(self.name)
+		self.name = name
+		self.logutil = KBLogUtil(self.name, WORKDIR, 'Daemon', os.getpid())
 		self.interfaces = {}
 		self.plugins = {}
 		self.pid = os.getpid()
@@ -35,7 +34,7 @@ class DroneDaemon:
 	def SIGINT(self, s, f):
 		#TODO find a cleaner way to do only handle signals from the parent process ?
 		if self.pid == os.getpid():
-			self.logutil.log(self.desc, "SIGINT", self.pid)
+			self.logutil.log("SIGINT")
 			signal.signal(signal.SIGINT, signal.SIG_IGN)
 			self.shutdown = True
 			self.shutdownDaemon()
@@ -59,15 +58,15 @@ class DroneDaemon:
 	def startDaemon(self):
 		self.runChecks()
 		self.logutil.logline()
-		self.logutil.log(self.desc, "Starting DroneDaemon", self.pid)
+		self.logutil.log("Starting DroneDaemon")
 		self.logutil.writePID()
 		self.enumerateInterfaces()
 		self.startRestServer()
 
 	def shutdownDaemon(self):
-		self.logutil.log(self.desc, 'Initiating shutdown', self.pid)
+		self.logutil.log('Initiating shutdown')
 		self.stopRunningPlugins()
-		self.logutil.log(self.desc, 'Completed shutdown', self.pid)
+		self.logutil.log('Completed shutdown')
 		self.logutil.endlog()
 		self.logutil.deletePID()
 		# TODO: verify that all subprocess have been terminated
@@ -77,7 +76,7 @@ class DroneDaemon:
 		pass
 
 	def startRestServer(self):
-		self.logutil.log(self.desc, 'Starting REST Server: http://127.0.0.1:{0}'.format(self.port), self.pid)
+		self.logutil.log('Starting REST Server: http://127.0.0.1:{0}'.format(self.port))
 		app = flask.Flask(__name__)
 		app.add_url_rule('/shutdown', None, self.shutdownDaemon, methods=['POST'])
 		app.add_url_rule('/task', None, self.processTaskRequest, methods=['POST'])
@@ -92,7 +91,7 @@ class DroneDaemon:
 		pluginShortName = pluginName.split('.')[-1]
 		channel = data.get('channel')
 		parameters = data.get('parameters')
-		self.logutil.log(self.desc, 'Processing Task Request: {0} ({1})'.format(uuid, pluginShortName), self.pid)
+		self.logutil.log('Processing Task Request: {0} ({1})'.format(uuid, pluginShortName))
 		return self.taskPlugin(pluginName, channel, uuid, parameters)
 
 	def taskPlugin(self, pluginName, channel, uuid, parameters):
@@ -101,29 +100,29 @@ class DroneDaemon:
 		pluginShortName = pluginName.split('.')[-1]
 		plugin = self.plugins.get((pluginShortName, channel), None)
 		if plugin == None:
-			self.logutil.log(self.desc, '\tNo Instance of ({0},{1}) Found - Starting New one'.format(pluginShortName, channel))
+			self.logutil.log('\tNo Instance of ({0},{1}) Found - Starting New one'.format(pluginShortName, channel))
 			interface = self.getAvailableInterface()
 			if interface == None:
-				self.logutil.log(self.desc, '\tFailed: No Avilable Interfaces', self.pid)
+				self.logutil.log('\tFailed: No Avilable Interfaces')
 				return 'FAILED TO TASK PLUGIN - NO AVAILABLE INTERFACES'
 			else:
-				self.logutil.log(self.desc, '\tAcquired Interface: {0}'.format(interface.device))
+				self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
 			pluginModule = getPlugin(pluginName)
 			if pluginModule == None:
-				self.logutil.log(self.desc, '\tFailed: Plugin Module: {0} does not exist'.format(pluginName))
+				self.logutil.log('\tFailed: Plugin Module: {0} does not exist'.format(pluginName))
 				return 'FAILED TO TASK PLUGIN - MODULE DOES NOT EXIST'
 			else:
-				self.logutil.log(self.desc, '\tLoaded Plugin Module: {0}'.format(pluginModule))
-			self.logutil.log(self.desc, '\tStarting Plugin: ({0}, ch.{1})'.format(pluginShortName, channel), self.pid)
+				self.logutil.log('\tLoaded Plugin Module: {0}'.format(pluginModule))
+			self.logutil.log('\tStarting Plugin: ({0}, ch.{1})'.format(pluginShortName, channel))
 			try:
 				plugin = pluginModule([interface], channel, self.drone)
 				self.plugins[(pluginShortName, channel)] = plugin
 			except Exception as e:
-				self.logutil.log(self.desc, '\tFAILED: Unknown exception: {0}'.format(e))
+				self.logutil.log('\tFAILED: Unknown exception: {0}'.format(e))
 				return 'FAILED - 1'
 		# task the plugin
 		try:
-			self.logutil.log(self.desc, 'Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid), self.pid)
+			self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid))
 			plugin.task(uuid, parameters)
 			return "SUCCESS"
 		except Exception as e:
@@ -135,7 +134,7 @@ class DroneDaemon:
 		return self.detaskPlugin(uuid)
 
 	def detaskPlugin(self, uuid):
-		self.logutil.log(self.desc, 'Processing Detask Request for {0}'.format(uuid), self.pid)
+		self.logutil.log('Processing Detask Request for {0}'.format(uuid))
 		for pluginKey,pluginObject in self.plugins.items():
 			for task_uuid in pluginObject.tasks.keys():
 				if task_uuid == uuid:
@@ -143,21 +142,21 @@ class DroneDaemon:
 					time.sleep(4)
 					if pluginObject.active == False:
 						del(self.plugins[pluginKey])
-						self.logutil.log(self.desc, 'Succesfully detasked {0} from {1}'.format(uuid, str(pluginObject.desc)), self.pid)
+						self.logutil.log('Succesfully detasked {0} from {1}'.format(uuid, str(pluginObject.desc)))
 						return "SUCCESS: DETASKED {0}\n".format(uuid)
 					else:
 						return "FAILURE: COULD NOT DETASK {0}".format(uuid)
 		return "FAILURE: COULD NOT FIND TASK {0}\n".format(uuid)
 
 	def stopRunningPlugins(self):
-		self.logutil.log(self.desc, 'Stopping Running Plugins', self.pid)
+		self.logutil.log('Stopping Running Plugins')
 		for plugin in self.plugins.values():
 			if plugin.active == True:
-				self.logutil.log(self.desc, "Stopping Plugin: {0}".format(plugin.desc), self.pid)
+				self.logutil.log("Stopping Plugin: {0}".format(plugin.desc))
 				plugin.shutdown()
 				if plugin.active:
 					print("had a problem shutting down plugin")
-		self.logutil.log(self.desc, 'Running plugins have been terminated', self.pid)
+		self.logutil.log('Running plugins have been terminated')
 
 	def getAvailableInterface(self):
 		for interface in self.interfaces.values():
@@ -166,11 +165,11 @@ class DroneDaemon:
 		return None
 
 	def enumerateInterfaces(self):
-		self.logutil.log(self.desc, "Enumerating Interfaces", self.pid)
+		self.logutil.log("Enumerating Interfaces")
 		for interface in kbutils.devlist():
 			device = interface[0]
 			description = interface[1]
-			self.logutil.log(self.desc, "\tAdded new interface: {0}".format(device), self.pid)
+			self.logutil.log("\tAdded new interface: {0}".format(device))
 			self.interfaces[device] = KBInterface(device)
 
 	def status(self):
@@ -209,9 +208,9 @@ class DroneClient:
 	def getInterfaces(self):
 		pass
 
-	def task(self, pluginName, channel, uuid, parameters):
+	def task(self, plugin, channel, uuid, parameters):
 		resource = '/task'
-		data = {'plugin':pluginName, 'channel':channel, 'uuid':uuid, 'parameters':parameters}
+		data = {'plugin':plugin, 'channel':channel, 'uuid':uuid, 'parameters':parameters}
 		return self.sendRequest(self.address, self.port, resource, data)		
 
 	def detask(self, uuid):
