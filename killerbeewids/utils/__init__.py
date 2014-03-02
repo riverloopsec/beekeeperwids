@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import os
 import time
 import datetime
@@ -30,6 +28,7 @@ def getDronePluginLibrary():
         library[name] = modulepath
     return library
 
+
 def loadModuleClass(name):
     # step 1 - load library of available modules
     library = {}
@@ -44,30 +43,6 @@ def loadModuleClass(name):
     #print('library: {0}'.format(library))
     #print('name: {0}'.format(name))
     #print('/////////////////////////////////////')
-
-    # step 2 - check if requested module is in library, if not return None
-    if not name in library.keys():
-        return None
-
-    # step 3 - load library class
-    path = library[name]
-    try:
-        p = getattr(__import__(str(path), fromlist=[str(name)]), str(name))
-    except(ImportError, AttributeError, ValueError) as e:
-        print(e)
-        p = None
-    return p
-
-def loadPluginClass(name):
-    # step 1 - load library of available modules
-    library = {}
-    filepath = os.path.join(KB_CONFIG_PATH, 'plugins.xml')
-    root = ET.parse(filepath).getroot()
-    for plugin in root.findall('plugin'):
-        name = plugin.get('name')
-        path = plugin.get('path')
-        library[name] = path
-
 
     # step 2 - check if requested module is in library, if not return None
     if not name in library.keys():

@@ -35,7 +35,7 @@ class FilterProcess(Process):
 	pkt['uuid'] = uuid
 	pkt['datetime'] = dateToMicro(pkt['datetime'])
 	#pkt['bytes'] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt['bytes'] ] ).strip()
-	pkt['bytes'] = base64.base64encode(pkt['bytes'])
+	pkt['bytes'] = base64.b64encode(pkt['bytes'])
 	if 0 in pkt: del pkt[0]
 	http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'Drone'}
 	post_data_json = json.dumps({'uuid':uuid, 'pkt':pkt})
