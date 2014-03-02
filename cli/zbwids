@@ -7,6 +7,7 @@ import subprocess
 import json
 import traceback
 from time import sleep
+
 from killerbeewids.wids import WIDSDaemon,WIDSClient
 from killerbeewids.utils import KBLogUtil,KBPATH
 from killerbeewids.utils import terminal_ui
@@ -35,9 +36,8 @@ def stop(args):
     '''
     sends an interrupt signal (SIGINT) to the wids daemon
     '''
-    pid = KBLogUtil(args.name, args.workdir).getPID()
+    pid = KBLogUtil(args.name).getPID()
     os.system('kill -s 2 {0}'.format(pid))
-
 
 def addDrone(args):
     '''
@@ -45,7 +45,6 @@ def addDrone(args):
     '''
     json_data = WIDSClient(args.address, args.port).addDrone(args.droneurl)
     print(json_data)
-
 
 def delDrone(args):
     '''
@@ -67,7 +66,7 @@ def logs(args):
     tails the logfile for the daemon
     '''
     os.system('clear')
-    logfile = KBLogUtil(args.name, args.workdir).logfilename
+    logfile = KBLogUtil(args.name).logfilename
     os.system('tail -F {0}'.format(logfile))
 
 
@@ -98,7 +97,6 @@ def monitor(args):
         status(args)
         sleep(args.refresh)
 
-
 #TODO - factor out this code
 def status(args):
     '''
@@ -126,12 +124,10 @@ def displayStatus(data):
     terminal_ui.printTable('Rules', data['rules'])
 
 
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-name', action='store', default='kbwids0')
-    parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
     parser.add_argument('-start', action='store_true')
     parser.add_argument('-run', action='store_true')
     parser.add_argument('-stop', action='store_true')

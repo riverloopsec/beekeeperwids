@@ -16,15 +16,15 @@ class AnalyticModule(Process):
     def __init__(self, settings, config, name):
         Process.__init__(self)
         self.name = name
-            self.settings = settings
+        self.settings = settings
         self.config = config
-            self.tasks = {}
+        self.tasks = {}
         self.lastPacketIndex = 0
-            self.active = False
-            self.running = False
+        self.active = False
+        self.running = False
         self.database = DatabaseHandler(self.config.name)
-        self.logutil = KBLogUtil(self.config.name, self.config.workdir, self.name, None)
-            self.widsclient = WIDSClient(self.config.server_ip, self.config.server_port)
+        self.logutil = KBLogUtil(self.config.name, self.name, None)
+        self.widsclient = WIDSClient(self.config.server_ip, self.config.server_port)
 
     def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters):
         task_uuid = str((uuid4()))
@@ -60,8 +60,8 @@ class AnalyticModule(Process):
     def getEvents(self):
         pass
 
-        def generateEvent(self):
-            pass
+    def generateEvent(self):
+        pass
 
     def registerEvent(self):
         pass
@@ -70,7 +70,7 @@ class AnalyticModule(Process):
         '''
         This function will detask all the running tasks on the drone prior to shutdown
         '''
-            pass
+        pass
 
     def shutdown(self):
         self.logutil.log('\t\tReceived Shutdown Request')

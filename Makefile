@@ -1,5 +1,5 @@
 install:
-	sudo python setup.py install
+	sudo python setup.py --quiet install
 	
 clean:
 	sudo python setup.py clean

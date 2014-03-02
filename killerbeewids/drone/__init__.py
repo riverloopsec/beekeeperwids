@@ -19,16 +19,13 @@ from killerbee import kbutils
 from killerbeewids.utils import KBLogUtil, KBInterface
 from plugins import capture
 
-# TODO - move this to config file
-WORKDIR = '/home/dev/etc/kb'
-
 class DroneDaemon:
 
     def __init__(self, name, port):
         signal.signal(signal.SIGINT, self.SIGINT)
         self.port = port
         self.name = name
-        self.logutil = KBLogUtil(self.name, WORKDIR, 'Daemon', os.getpid())
+        self.logutil = KBLogUtil(self.name, 'Daemon', os.getpid())
         self.interfaces = {}
         self.plugins = {}
         self.pid = os.getpid()

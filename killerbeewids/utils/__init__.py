@@ -4,6 +4,7 @@ import os
 import time
 import datetime
 import traceback
+import tempfile
 from xml.etree import ElementTree as ET
 
 from killerbee import KillerBee
@@ -136,7 +137,7 @@ class KBInterface(KillerBee):
 class KBLogUtil:
     def __init__(self, name, process_name=None, process_pid=None, space=24):
         self.name = name
-        self.path = os.environ.get('KBWIDS_LOG_PATH')
+        self.path = os.getenv('KBWIDS_LOG_PATH', tempfile.gettempdir())
         self.process_name = process_name
         self.process_pid = process_pid
         self.space = space

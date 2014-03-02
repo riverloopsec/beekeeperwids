@@ -10,3 +10,15 @@ low-level embeeded systems, custom hardware, and specailized radio protocols.
 
 Contributions and suggestions are welcome!
 
+Configuration
+--------------
+
+Install the software on your drone. Then execute 'zbdrone -run'.
+
+Install the software on your WIDS backend (if different than the drone computer).
+Then execute 'zbwids -run'.
+
+Logs will be written to the logging directory, which is defined by the KBWIDS_LOG_PATH 
+enviroment variable, if set, and otherwise defaults to the temp directory of your system. 
+The logs are named for the system component which is producing them.
+

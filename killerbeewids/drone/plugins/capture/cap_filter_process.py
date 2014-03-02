@@ -4,9 +4,6 @@ the selection and dispatching of captured packets.
 rmspeers 2013 riverloopsecurity.com
 '''
 
-WORKDIR = '/home/dev/etc/kb'
-
-
 import cPickle
 from multiprocessing import Process
 import urllib2
@@ -14,6 +11,7 @@ import json
 import os
 import base64
 from struct import unpack
+
 from killerbeewids.utils import KBLogUtil, dateToMicro
 
 class FilterProcess(Process):
@@ -27,7 +25,7 @@ class FilterProcess(Process):
 	self.drone = drone
 	self.parent = parent
 	self.desc = '{0}.Filter'.format(self.parent)
-	self.logutil = KBLogUtil(self.drone, WORKDIR, 'FilterProcess', None)
+	self.logutil = KBLogUtil(self.drone, 'FilterProcess', None)
 	self.callbacks = 0
 
     def do_callback(self, uuid, cburl, pkt):
