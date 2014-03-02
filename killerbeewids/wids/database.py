@@ -7,6 +7,7 @@ from killerbeewids.utils import KB_CONFIG_PATH
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+
 Base = declarative_base()
 
 '''
@@ -28,12 +29,12 @@ class Packet(Base):
     def __init__(self, pktdata):
         print(pktdata)
         self.datetime = int(pktdata.get('datetime'))
-        self.source = str(pktdata.get('location'))
-        self.dbm = str(pktdata['dbm'])
-        self.rssi = int(pktdata['rssi'])
-        self.uuid = str(pktdata['uuid'])
+        self.source   = str(pktdata.get('location'))
+        self.dbm   = str(pktdata['dbm'])
+        self.rssi  = int(pktdata['rssi'])
+        self.uuid  = str(pktdata['uuid'])
         #self.validcrc = str(pktdata['validcrc'])
-        self.bytes = str(base64.base64decode(data['bytes']))
+        self.bytes = base64.base64decode(data['bytes'])
 
     def display(self):
         print(self.id, self.datetime, self.source, self.dbm, self.rssi)
