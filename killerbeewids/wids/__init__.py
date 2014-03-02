@@ -13,10 +13,12 @@ from collections import OrderedDict
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
 
-from killerbeewids.utils import KBLogUtil, loadModuleClass
+from killerbeewids.utils import KBLogUtil
 from killerbeewids.drone import DroneClient
 from killerbeewids.wids.database import DatabaseHandler
 from killerbeewids.wids.engine import WIDSRuleEngine
+from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
+
 
 class WIDSDaemon:
 
@@ -151,6 +153,10 @@ class WIDSDaemon:
             self.loadModule(moduleConfigDict)
         pass
 
+
+    def loadModuleClass(self, module):
+        if module == 'BeaconRequestMonitor':
+            return BeaconRequestMonitor
 
     def loadModule(self, moduleConfigDict):
         try:
