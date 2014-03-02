@@ -243,9 +243,10 @@ class DroneClient:
 		self.port = port
 		
 	def testTask(self):
-		plugin = 'CapturePlugin'
+		print("running testtask")
+		plugin = 'TestPlugin'
 		channel = 15
-		uuid = '813027f9-d20d-4cb6-970e-85c8ed1cff03'
+		uuid = '123456789-d20d-4cb6-970e-85c8ed1cff03'
 		parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
 		return self.task(plugin, channel, uuid, parameters)
 
