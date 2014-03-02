@@ -2,14 +2,11 @@
 
 import os
 import time
-from killerbee import KillerBee
 import datetime
 import traceback
 from xml.etree import ElementTree as ET
 
-KBDIR = '/home/dev/etc/kb'
-KBPATH = '/home/dev/riverloop/projects/killerbeewids'
-DEFAULTCONFIG = '{0}/wids/defaultconfig.xml'.format(KBPATH)
+from killerbee import KillerBee
 
 def dateToMicro(datetimeObject):
     delta = datetimeObject - datetime.datetime(1970,1,1)
@@ -44,7 +41,6 @@ def loadModuleClass(name):
     #print('library: {0}'.format(library))
     #print('name: {0}'.format(name))
     #print('/////////////////////////////////////')
-
 
     # step 2 - check if requested module is in library, if not return None
     if not name in library.keys():
@@ -138,9 +134,9 @@ class KBInterface(KillerBee):
 
 
 class KBLogUtil:
-    def __init__(self, name, path, process_name=None, process_pid=None, space=24):
+    def __init__(self, name, process_name=None, process_pid=None, space=24):
         self.name = name
-        self.path = path
+        self.path = os.environ.get('KBWIDS_LOG_PATH')
         self.process_name = process_name
         self.process_pid = process_pid
         self.space = space
