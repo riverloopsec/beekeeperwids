@@ -27,7 +27,7 @@ class TestFilterProcess(unittest.TestCase):
 
         self.p_filt = FilterProcess(recv_pconn, self.done_event)
         self.p_filt.start()
-    
+
     def cleanUp(self):
         self.done_event.set()
         self.p_filt.join()
@@ -60,4 +60,3 @@ class TestFilterProcess(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

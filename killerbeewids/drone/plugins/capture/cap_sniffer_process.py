@@ -29,15 +29,14 @@ class SnifferProcess(Process):
         flag is set.
         '''
         self.logutil.log('Initializing')
-	self.logutil.log('Turning on interface: {0}'.format(self.kb.device))
+        self.logutil.log('Turning on interface: {0}'.format(self.kb.device))
         self.kb.sniffer_on()
         while not self.stopevent.is_set():
             recvpkt = self.kb.pnext() #nonbocking
             # Check for empty packet (timeout) and valid FCS
             if recvpkt is not None:# and recvpkt[1]:
-		self.logutil.log("Received Frame")
+                self.logutil.log("Received Frame")
                 self.pipe.send(recvpkt)
-	self.logutil.log('Turning off interface: {0}'.format(self.kb.device))
+        self.logutil.log('Turning off interface: {0}'.format(self.kb.device))
         self.kb.sniffer_off()
-	self.logutil.log('Terminating Execution')
-
+        self.logutil.log('Terminating Execution')
