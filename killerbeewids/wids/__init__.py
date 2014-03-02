@@ -173,7 +173,7 @@ class WIDSDaemon:
                 return self.resultMessage(False, error)
             else:
                 moduleIndex = self.module_counter
-                moduleClass = loadModuleClass(moduleName)
+                moduleClass = self.loadModuleClass(moduleName)
                 moduleProcess = moduleClass(moduleSettings, self.config)
                 moduleProcess.start()
                 moduleObject = Module(moduleIndex, moduleName, moduleSettings, moduleProcess)
@@ -332,7 +332,7 @@ class WIDSDaemon:
         self.logutil.trace(etb)
         return json.dumps({'success':False, 'data':str(etb)})
 
-
+'''
 class WIDSClient:
 
     def __init__(self, address, port):
@@ -388,6 +388,7 @@ class WIDSClient:
             return json.dumps({'success':True, 'data':response_string})
         except:
             return json.dumps({'success':False, 'data':'Error - failed to read response from drone'})
+'''
 
 class Module:
     def __init__(self, index, name, settings, process):

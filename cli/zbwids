@@ -9,7 +9,7 @@ import traceback
 from time import sleep
 
 from killerbeewids.wids import WIDSDaemon,WIDSClient
-from killerbeewids.utils import KBLogUtil,KBPATH
+from killerbeewids.utils import KBLogUtil
 from killerbeewids.utils import terminal_ui
 
 def debug(args):
