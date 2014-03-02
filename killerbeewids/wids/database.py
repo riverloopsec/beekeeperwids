@@ -48,7 +48,6 @@ http://docs.sqlalchemy.org/en/rel_0_9/orm/tutorial.html
 class DatabaseHandler:
     def __init__(self, database, path=KB_CONFIG_PATH):
         databasefile = "sqlite:///{0}/{1}.db".format(path, database)
-        print(databasefile)
         self.engine = create_engine(databasefile, echo=False)
         if not os.path.isfile(database):
             self.createDB()
