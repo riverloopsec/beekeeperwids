@@ -4,7 +4,7 @@ import os
 import sys
 import base64
 from killerbeewids.utils import KB_CONFIG_PATH
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -24,7 +24,7 @@ class Packet(Base):
     rssi = Column(Integer())
     validcrc = Column(String(250))
     uuid = Column(String(250))
-    bytes = Column(String(150))
+    pbytes = Column(LargeBinary(150))
 
     def __init__(self, pktdata):
         print(pktdata)
@@ -34,7 +34,7 @@ class Packet(Base):
         self.rssi  = int(pktdata['rssi'])
         self.uuid  = str(pktdata['uuid'])
         #self.validcrc = str(pktdata['validcrc'])
-        self.bytes = base64.b64decode(data['bytes'])
+        self.pbytes = base64.b64decode(pktdata['bytes'])
 
     def display(self):
         print(self.id, self.datetime, self.source, self.dbm, self.rssi)
