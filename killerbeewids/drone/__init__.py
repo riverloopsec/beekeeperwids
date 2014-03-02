@@ -16,7 +16,8 @@ import signal
 import traceback
 from uuid import uuid4 as generateUUID
 from killerbee import kbutils
-from killerbeewids.utils import KBLogUtil, KBInterface, loadPluginClass
+from killerbeewids.utils import KBLogUtil, KBInterface
+from plugins import capture
 
 # TODO - move this to config file
 WORKDIR = '/home/dev/etc/kb'

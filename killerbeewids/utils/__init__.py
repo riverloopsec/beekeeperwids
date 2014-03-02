@@ -55,6 +55,7 @@ def loadModuleClass(name):
         p = None
     return p
 
+'''
 def loadPluginClass(name):
     # step 1 - load library of available modules
     library = {}
@@ -64,12 +65,9 @@ def loadPluginClass(name):
         name = plugin.get('name')
         path = plugin.get('path')
         library[name] = path
-
-
     # step 2 - check if requested module is in library, if not return None
     if not name in library.keys():
         return None
-
     # step 3 - load library class
     path = library[name]
     try:
@@ -78,6 +76,8 @@ def loadPluginClass(name):
         print(e)
         p = None
     return p
+'''
+
 
 def checkDronePlugin(name):
     '''
