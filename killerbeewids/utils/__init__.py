@@ -9,6 +9,8 @@ from xml.etree import ElementTree as ET
 
 from killerbee import KillerBee
 
+KB_CONFIG_PATH = os.getenv('KBWIDS_CONFIG_PATH', '/opt/kbwids/')
+
 def dateToMicro(datetimeObject):
     delta = datetimeObject - datetime.datetime(1970,1,1)
     micro = (delta.microseconds + ((delta.seconds + delta.days * 24 * 3600) * 10**6))
@@ -20,7 +22,7 @@ def microToDate(microseconds):
 
 def getDronePluginLibrary():
     library = {}
-    filepath = '{0}/drone/plugins/pluginlibrary.xml'.format(KBPATH)
+    filepath = os.path.join(KB_CONFIG_PATH, 'pluginlibrary.xml')
     root = ET.parse(filepath).getroot()
     for plugin in root.findall('plugin'):
         name = plugin.get('name')
@@ -31,7 +33,7 @@ def getDronePluginLibrary():
 def loadModuleClass(name):
     # step 1 - load library of available modules
     library = {}
-    filepath = '{0}/wids/modules/modules.xml'.format(KBPATH)
+    filepath = os.path.join(KB_CONFIG_PATH, 'modules.xml')
     root = ET.parse(filepath).getroot()
     for plugin in root.findall('module'):
         name = plugin.get('name')
@@ -59,7 +61,7 @@ def loadModuleClass(name):
 def loadPluginClass(name):
     # step 1 - load library of available modules
     library = {}
-    filepath = '{0}/drone/plugins/plugins.xml'.format(KBPATH)
+    filepath = os.path.join(KB_CONFIG_PATH, 'plugins.xml')
     root = ET.parse(filepath).getroot()
     for plugin in root.findall('plugin'):
         name = plugin.get('name')
@@ -177,8 +179,6 @@ class KBLogUtil:
     def cleanup(self):
         os.remove(self.runfilename)
         os.remove(self.pidfilename)
-
-
 
 if __name__ == '__main__':
     pass
