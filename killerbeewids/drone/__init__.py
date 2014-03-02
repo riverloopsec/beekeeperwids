@@ -17,7 +17,7 @@ import traceback
 from uuid import uuid4 as generateUUID
 from killerbee import kbutils
 from killerbeewids.utils import KBLogUtil, KBInterface
-from plugins import capture
+from killerbeewids.drone.plugins.capture import CapturePlugin
 
 class DroneDaemon:
 
@@ -102,6 +102,10 @@ class DroneDaemon:
         except:
             return self.handleException()
 
+    def loadPluginClass(self, plugin):
+        if plugin == 'CapturePlugin':
+            return CapturePlugin
+
     def taskPlugin(self, plugin, channel, uuid, parameters):
         pluginObject = self.plugins.get((plugin,channel), None)
         if pluginObject == None:
@@ -115,7 +119,7 @@ class DroneDaemon:
                     return {'success':False}
                 self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
                 # load class
-                pluginClass = loadPluginClass(plugin)
+                pluginClass = self.loadPluginClass(plugin)
                 if pluginClass == None:
                     self.logutil.log('\tFailed: Plugin Module: {0} does not exist'.format(plugin))
                     return {'success':False}
@@ -127,7 +131,6 @@ class DroneDaemon:
             except Exception:
                 self.handleException()
 
-
         # task plugin
         try:
             self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(plugin, channel, uuid))
@@ -135,48 +138,6 @@ class DroneDaemon:
             return json.dumps({'success':True})
         except Exception:
             self.handleException()
-
-        '''
-        #TODO -cleanup exception handlers
-        # if plugin is not already active on specified channel, start new one
-        print(parameters)
-        pluginShortName = pluginName.split('.')[-1]
-        plugin = self.plugins.get((pluginShortName, channel), None)
-        if plugin == None:
-                self.logutil.log('\tNo Instance of ({0},{1}) Found - Starting New one'.format(pluginShortName, channel))
-                interface = self.getAvailableInterface()
-                if interface == None:
-                        self.logutil.log('\tFailed: No Avilable Interfaces')
-                        return 'FAILED TO TASK PLUGIN - NO AVAILABLE INTERFACES'
-                else:
-                        self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
-                pluginModule = getPlugin(pluginName)
-                if pluginModule == None:
-                        return 'FAILED TO TASK PLUGIN - MODULE DOES NOT EXIST'
-                else:
-                        self.logutil.log('\tLoaded Plugin Module: {0}'.format(pluginModule))
-                self.logutil.log('\tStarting Plugin: ({0}, ch.{1})'.format(pluginShortName, channel))
-
-                try:
-                        print('break A')
-                        print(pluginModule)
-                        plugin = pluginModule([interface], channel, self.name)
-                        import blahblah
-                        print('break B')
-                        self.plugins[(pluginShortName, channel)] = plugin
-                        print('break C')
-                except Exception:
-                        self.logutil.log('\tFAILED: Unknown exception: {0}'.format(e))
-                        self.handleException()
-
-        # task the plugin
-        try:
-                self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(pluginShortName, channel, uuid))
-                plugin.task(uuid, parameters)
-                return "SUCCESS"
-        except Exception as e:
-                return "FAILED - 2"
-        '''
 
 
     def processDetaskRequest(self):
