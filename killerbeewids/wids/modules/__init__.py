@@ -37,9 +37,6 @@ class AnalyticModule(Process):
         else:
             return None
 
-    def getCallbackUrl(self):
-        return 'http://{0}:{1}/data/upload'.format(self.config.server_ip, self.config.server_port)
-
     def detaskDrone(self, uuid, plugin, channel, parameters):
         pass
 

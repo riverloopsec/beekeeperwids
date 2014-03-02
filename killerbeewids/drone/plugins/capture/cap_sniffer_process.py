@@ -4,9 +4,6 @@ the capturing of packets and passing them to the FilterProcess stage.
 rmspeers 2013 riverloopsecurity.com
 '''
 
-WORKDIR = '/home/dev/etc/kb'
-
-
 import os
 from multiprocessing import Process
 
@@ -24,7 +21,7 @@ class SnifferProcess(Process):
         self.kb   = kb
         self.stopevent = stopevent
         self.desc = '{0}.Sniffer'.format(parent)
-        self.logutil = KBLogUtil(drone, WORKDIR, 'SnifferProcess', None)
+        self.logutil = KBLogUtil(drone, 'SnifferProcess', None)
 
     def run(self):
         '''

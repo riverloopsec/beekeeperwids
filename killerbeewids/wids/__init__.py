@@ -12,12 +12,11 @@ import traceback
 from collections import OrderedDict
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
+
 from killerbeewids.utils import KBLogUtil, loadModuleClass, DEFAULTCONFIG
 from killerbeewids.drone import DroneClient
 from killerbeewids.wids.database import DatabaseHandler
 from killerbeewids.wids.engine import WIDSRuleEngine
-
-
 
 class WIDSDaemon:
 
@@ -430,7 +429,11 @@ class Tasks:
     def json(self):
         return {'id':self.id, 'uuid':self.uuid, 'plugin':self.plugin, 'channel':self.channel, 'parameters':self.parameters}
 
+
 class WIDSConfig:
+    '''
+    This object represents a config of the WIDS (server/backend) module.
+    '''
     def __init__(self, parameters=None, config=None):
         '''
         default config parameters
@@ -445,11 +448,10 @@ class WIDSConfig:
         self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
         self.modules = [{'name':'BeaconRequestMonitor', 'settings':{}}]
 
-    def loadParameters(self, parameters):
-        pass
-
     def loadConfig(self, config):
+        #TODO load all parameters above from the config file, and call this at startup
         pass
 
     def json(self):
         return {'name':self.name, 'workdir':self.workdir, 'daemon_pid':self.daemon_pid, 'engine_pid':self.engine_pid, 'server_port':self.server_port}
+

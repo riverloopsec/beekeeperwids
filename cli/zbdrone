@@ -209,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('-kill', action='store_true')
     parser.add_argument('-droneid', action='store', default='0')
     parser.add_argument('-name', action='store', default='drone0')
-    parser.add_argument('-workdir', action='store', default='/home/dev/etc/kb')
+    parser.add_argument('-workdir', action='store', default='/tmp')
     parser.add_argument('-address', action='store', default='127.0.0.1')
     parser.add_argument('-port', action='store', type=int, default=9999)
     parser.add_argument('-task', action='store_true')
