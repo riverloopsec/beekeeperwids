@@ -34,7 +34,7 @@ class Packet(Base):
         self.rssi  = int(pktdata['rssi'])
         self.uuid  = str(pktdata['uuid'])
         #self.validcrc = str(pktdata['validcrc'])
-        self.bytes = base64.base64decode(data['bytes'])
+        self.bytes = base64.b64decode(data['bytes'])
 
     def display(self):
         print(self.id, self.datetime, self.source, self.dbm, self.rssi)
