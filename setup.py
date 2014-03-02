@@ -13,10 +13,11 @@ setup(name='killerbeewids',
       author_email='javier@riverloopsecurity.com',
       url='http://www.riverloopsecurity.com',
       packages=['killerbeewids',
-                'killerbeewids.drone', 'killerbeewids.drone.plugins',
+                'killerbeewids.drone', 'killerbeewids.drone.plugins', 'killerbeewids.drone.plugins.capture',
                 'killerbeewids.wids', 'killerbeewids.wids.modules',
                 'killerbeewids.utils'],
       scripts=['cli/zbdrone', 'cli/zbwids'],
+      install_requires=['flask', 'killerbee >= 2.5.0'],
       # Consider using Markdown such as in https://coderwall.com/p/qawuyq
       long_description = open('README.txt').read(),
      )
