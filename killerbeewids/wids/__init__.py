@@ -244,7 +244,6 @@ class WIDSDaemon:
         except Exception:
             self.handleException()
 
-
     def processDataDownload(self):
         pass
 

@@ -14,9 +14,6 @@ class Event(Base):
         __tablename__ = 'event'
 '''
 
-
-
-
 class Packet(Base):
     __tablename__ = 'packet'
     id = Column(Integer, primary_key=True)
@@ -45,11 +42,9 @@ class Packet(Base):
 
 # TODO - implement filters for packet queries
 
-
 '''
 http://docs.sqlalchemy.org/en/rel_0_9/orm/tutorial.html
 '''
-
 
 class DatabaseHandler:
     def __init__(self, database, path=KBDIR):
