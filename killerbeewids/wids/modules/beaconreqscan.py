@@ -5,6 +5,7 @@ import signal
 import logging
 from multiprocessing import Process
 import killerbeewids.wids.database as db
+
 from killerbeewids.wids.modules import AnalyticModule
 
 class BeaconRequestMonitor(AnalyticModule):
@@ -18,14 +19,14 @@ class BeaconRequestMonitor(AnalyticModule):
 
     def run(self):
         self.logutil.log('Starting Execution')
-	self.active = True
+        self.active = True
 
-	time.sleep(3)
-	self.logutil.log('Submitting Drone Task Request')
+        time.sleep(3)
+        self.logutil.log('Submitting Drone Task Request')
 
         # Task drones to capture beacon request packets.
         #TODO does callback really need to be in each parameter field, especially hardcoded?
-        parameters = {'callback':'http://127.0.0.1:8888/data/upload',
+        parameters = {'callback':'http://{0}:{1}/data/upload'.format(self.config.server_ip, self.config.server_port),
                       'filter'  : {
                          'fcf': (0x0300, 0x0300),
                          'byteoffset': (7, 0xff, 0x07)
@@ -35,7 +36,7 @@ class BeaconRequestMonitor(AnalyticModule):
         # get packets from database and run statistics
         while self.active:
             #TODO this loop should only select things by UUID from the task/filter entered above
-	    print('scanning for new packets')
+            print('scanning for new packets')
             #for packet in self.getNewPackets(uuid=[uuid_task1]):
                 #TODO our loop will probably switch to running every 30 secs,
                 #   either on a timer or using sleep, rather than calling getNewPackets
@@ -46,19 +47,16 @@ class BeaconRequestMonitor(AnalyticModule):
                 # Every N scans, or every time a new "block" of scans occurs,
                 #   rasise an "informational level" event.
                 #TODO
-                
+
                 # Calculate a moving average of how many of these we typically
                 #     see in a given time, and if we're significantly higher
                 #     than that all of a sudden, we're concerned.
                 #TODO query the DB for the number of packets matching our UUID
-                #   in the past 30 seconds, and then query the DB for the # of 
+                #   in the past 30 seconds, and then query the DB for the # of
                 #   packets which were seen between t-30 seconds ago and t-150
                 #   seconds ago / 5. Seeing the last 30 seconds higher than the
                 #   average of the previous time detects a spike.
-	    time.sleep(5)
-		
+            time.sleep(5)
+
     def cleanup(self):
         pass
-
-
-

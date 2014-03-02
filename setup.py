@@ -21,4 +21,3 @@ setup(name='killerbeewids',
       # Consider using Markdown such as in https://coderwall.com/p/qawuyq
       long_description = open('README.txt').read(),
      )
-

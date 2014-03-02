@@ -8,5 +8,3 @@ test
 2. detask capture plugin
 
 '''
-
-

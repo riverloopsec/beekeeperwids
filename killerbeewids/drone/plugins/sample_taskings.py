@@ -52,4 +52,3 @@ import json
 
 
 print(json.dumps({'callback': 'localhost:8080/app/fullcap/','filter'  : {}}))
-

@@ -3,6 +3,6 @@ install:
 	
 clean:
 	sudo python setup.py clean
-	sudo rm -rf dist/ *.egg-info
+	sudo rm -rf build/ dist/ *.egg-info
 	find . -iname *~ -delete
 

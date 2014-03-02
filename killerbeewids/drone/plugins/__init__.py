@@ -20,7 +20,7 @@ class BaseDronePlugin(object):
         self.tasks = {}
         self.done_event = Event()
         self.task_update_event = Event()
-        self.timeout = 5 
+        self.timeout = 5
         self.status = True
         self.active = True
         self.desc = None
@@ -61,7 +61,3 @@ class BaseDronePlugin(object):
         '''
         overwrite this function
         '''
-
-
-
-
