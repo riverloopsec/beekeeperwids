@@ -244,7 +244,7 @@ class DroneClient:
 
     def testTask(self):
         print("running testtask")
-        plugin = 'TestPlugin'
+        plugin = 'CapturePlugin'
         channel = 15
         uuid = '123456789-d20d-4cb6-970e-85c8ed1cff03'
         parameters = {'callback':'http://127.0.0.1:8888/data', 'filter':{}}
