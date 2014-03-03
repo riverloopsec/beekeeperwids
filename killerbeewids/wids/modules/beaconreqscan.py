@@ -45,11 +45,13 @@ class BeaconRequestMonitor(AnalyticModule):
             datetime_now  = datetime.utcnow()
             datetime_t30  = datetime_now - timedelta(seconds=30)
             datetime_t120 = datetime_now - timedelta(seconds=120)
-            n30  = self.getPackets(queryFilter=[('datetime','>',dateToMicro(datetime_t30))],
-                                   uuid=[uuid_task1], count=True)
-            n120 = self.getPackets(queryFilter=[('datetime','<',dateToMicro(datetime_t30 )),
+
+            n30  = self.getPackets(valueFilterList=[('datetime','>',dateToMicro(datetime_t30))],
+                                   uuidFilterList=[uuid_task1], count=True)
+            n120 = self.getPackets(valueFilterList=[('datetime','<',dateToMicro(datetime_t30 )),
                                                 ('datetime','>',dateToMicro(datetime_t120))],
-                                   uuid=[uuid_task1], count=True)
+                                   uuidFilterList=[uuid_task1], count=True)
+
             an90 = n120/3.0 #30-120 seconds is a 90 second range so 3 * 30sec intervals
             self.logutil.log("debug: Found {0} beacon requests in last 30 seconds, and {1} per 30 secs average over the prior 90 seconds (absolute {2}).".format(n30, an90, n120))
             # Calculate a moving average of how many of these we typically

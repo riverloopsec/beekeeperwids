@@ -91,6 +91,7 @@ class DatabaseHandler:
     #TODO - add functionality to search for byte patterns
 
     def getPackets(self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
+
         # verify parameters are valid
         if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
             raise Exception("'filterList' and 'uuidList' must be type lists")

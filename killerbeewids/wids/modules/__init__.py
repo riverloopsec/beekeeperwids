@@ -44,8 +44,8 @@ class AnalyticModule(Process):
         pass
 
 
-    def getPackets, self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
-        self.database.getPackets(valueFilterList, uuidFilterList, new, maxcount, count)
+    def getPackets(self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
+        return self.database.getPackets(valueFilterList, uuidFilterList, new, maxcount, count)
 
     '''
     this code is being moved directly to DatabaseHandler
