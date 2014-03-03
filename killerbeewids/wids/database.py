@@ -86,27 +86,40 @@ class DatabaseHandler:
     def storeEvent(self, event_data):
         return self.storeElement(Event(event_data))
 
-    def getPackets(self, filterList=[], uuidList=[], new=False, maxcount=None):
+    def getPackets(self, filterList=[], uuidList=[], new=False, maxcount=0, count=False):
         # verify parameters are valid
-        if not type(filterList) is list or not type(uuidList) is list:
+        if not type(filterList) is list or not type(uuidList) is list or not type(maxcount) is int:
             raise Exception("'filterList' and 'uuidList' must be type lists")
+
         # prepare base query
         query = self.session.query(Packet)
+
         # filtery by packet values
         for key,operator,value in filterList:
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
-        temp = query.all()
-        results = []
+
+        # apply maxcount limit
+        if maxcount > 0: query = query.limit(maxcount)
+
+        # issue query and get results
+        results = query.all()
+
         # filter packets by uuid (after query)
+        temp = results
+        results = []
         if len(uuidList) > 0:
             for packet in temp:
                 if packet.checkUUID(uuidList):
-                    results.append(packet)
-            return results
-        # if not uuid filter is provided, then return temp
+                    results.append(packet)    
         else:
-            return temp
-            
+            results = temp
+
+
+        # return actual packets or packet count
+        if not count:
+            return results
+        else:
+            return len(results) 
 
     def getEvents(self, filters=[], new=False):
         return self.getElement(Event, filters, new)
