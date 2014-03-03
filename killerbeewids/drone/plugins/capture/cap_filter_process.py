@@ -29,13 +29,10 @@ class FilterProcess(Process):
         self.callbacks = 0
 
     def do_callback(self, uuid, cburl, pkt):
-        # @ryan: below are hacks to bypass formatting/encoding errors, could you look into them?
-        # there were some UTF encoding errors for the raw bytes
-        # TODO - base64 encode pkt['bytes']
         pkt['uuid'] = uuid
         pkt['datetime'] = dateToMicro(pkt['datetime'])
-        #pkt['bytes'] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt['bytes'] ] ).strip()
         pkt['bytes'] = base64.b64encode(pkt['bytes'])
+        pkt['validcrc'] = base64.b64encode(pkt['validcrc'])
         if 0 in pkt: del pkt[0]
         http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'Drone'}
         post_data_json = json.dumps({'uuid':uuid, 'pkt':pkt})

@@ -1,25 +1,10 @@
 #!/usr/bin/python
 
-import logging
-import flask
 import json
 import os
 import sys
-import signal
 import time
-import urllib2, urllib
 import traceback
-from collections import OrderedDict
-from xml.etree import ElementTree as ET
-from multiprocessing import Pipe, Event, Manager, Lock
-
-'''
-from killerbeewids.utils import KBLogUtil
-from killerbeewids.drone import DroneClient
-from killerbeewids.wids.database import DatabaseHandler
-from killerbeewids.wids.engine import WIDSRuleEngine
-from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
-'''
 
 class WIDSClient:
 

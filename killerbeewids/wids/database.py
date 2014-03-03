@@ -36,11 +36,22 @@ class Packet(Base):
     def __init__(self, pktdata):
         self.datetime = int(pktdata.get('datetime'))
         self.source   = str(pktdata.get('location'))
-        self.dbm   = str(pktdata['dbm'])
-        self.rssi  = int(pktdata['rssi'])
-        self.uuid  = str(pktdata['uuid'])
-        self.pbytes = base64.b64decode(pktdata['bytes'])
+        self.dbm      = str(pktdata['dbm'])
+        self.rssi     = int(pktdata['rssi'])
+        self.uuid     = str(pktdata['uuid'])
+        self.pbytes   = base64.b64decode(pktdata['bytes'])
         #self.validcrc = str(pktdata['validcrc'])
+
+    def checkUUID(self, uuidList):
+        # check if any of the UUIDs in the provided list match the Packet's UUIDs list
+        # TODO - modify this so that self.uuid is a list not a single string
+        for uuid in uuidList:
+            #if uuid in self.uuid:
+            if uuid == self.uuid:
+                return True
+        return False
+
+    
 
 
 class DatabaseHandler:
@@ -56,6 +67,10 @@ class DatabaseHandler:
     def createDB(self):
         Base.metadata.create_all(self.engine)
 
+    def close(self):
+        #TODO - how to close a connection?
+        pass
+
     def storeElement(self, element):
         try:
             self.session.add(element)
@@ -69,15 +84,29 @@ class DatabaseHandler:
         return self.storeElement(Packet(packet_data))
 
     def storeEvent(self, event_data):
-        returen self.storeElement(Event(event_data))
+        return self.storeElement(Event(event_data))
 
-    def getElement(self, elementClass, filters=[], new=False):
-        query = self.session.query(elementClass)
-        results = query.all()
-        return results
-
-    def getPackets(self, filters=[], new=False):
-        return self.getElement(Packet, filters, new)
+    def getPackets(self, filterList=[], uuidList=[], new=False, maxcount=None):
+        # verify parameters are valid
+        if not type(filterList) is list or not type(uuidList) is list:
+            raise Exception("'filterList' and 'uuidList' must be type lists")
+        # prepare base query
+        query = self.session.query(Packet)
+        # filtery by packet values
+        for key,operator,value in filterList:
+            query = query.filter('{0}{1}{2}'.format(key,operator,value))
+        temp = query.all()
+        results = []
+        # filter packets by uuid (after query)
+        if len(uuidList) > 0:
+            for packet in temp:
+                if packet.checkUUID(uuidList):
+                    results.append(packet)
+            return results
+        # if not uuid filter is provided, then return temp
+        else:
+            return temp
+            
 
     def getEvents(self, filters=[], new=False):
         return self.getElement(Event, filters, new)
