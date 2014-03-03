@@ -35,6 +35,11 @@ class BeaconRequestMonitor(AnalyticModule):
         uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
                                     task_channel=15, task_parameters=parameters)
 
+        if uuid_task1 == False:
+            self.logutil.log('Failed to Task Drone')
+        else:
+            self.logutil.log('Successfully tasked Drone with UUID: {0}'.format(uuid_task1))
+
         # Get packets from database and run statistics
         while self.active:
             datetime_now  = datetime.utcnow()

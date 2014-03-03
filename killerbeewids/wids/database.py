@@ -29,7 +29,7 @@ class Packet(Base):
     datetime = Column(Integer())
     dbm = Column(Integer)
     rssi = Column(Integer())
-    validcrc = Column(String(250))
+    validcrc = Column(Boolean)
     uuid = Column(String(250))
     pbytes = Column(LargeBinary(150))
 
@@ -40,7 +40,7 @@ class Packet(Base):
         self.rssi     = int(pktdata['rssi'])
         self.uuid     = str(pktdata['uuid'])
         self.pbytes   = base64.b64decode(pktdata['bytes'])
-        #self.validcrc = str(pktdata['validcrc'])
+        self.validcrc = pktdata['validcrc']
 
     def checkUUID(self, uuidList):
         # check if any of the UUIDs in the provided list match the Packet's UUIDs list

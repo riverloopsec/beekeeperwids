@@ -32,7 +32,6 @@ class FilterProcess(Process):
         pkt['uuid'] = uuid
         pkt['datetime'] = dateToMicro(pkt['datetime'])
         pkt['bytes'] = base64.b64encode(pkt['bytes'])
-        pkt['validcrc'] = base64.b64encode(pkt['validcrc'])
         if 0 in pkt: del pkt[0] # Kill KillerBee's backwards compatible keys
         if 1 in pkt: del pkt[1]
         if 2 in pkt: del pkt[2]

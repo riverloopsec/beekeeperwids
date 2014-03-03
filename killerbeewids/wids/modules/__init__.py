@@ -2,12 +2,14 @@
 
 import os
 import json
+import traceback
 from uuid import uuid4
 from multiprocessing import Process
 from killerbeewids.wids.database import *
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil
 
+#TODO - import sendPOST from utils
 
 class AnalyticModule(Process):
 
@@ -34,6 +36,8 @@ class AnalyticModule(Process):
             else:
                 return False
         except Exception:
+            etb = traceback.format_exc()
+            self.logutil.trace(etb)
             return False
 
     def detaskDrone(self, droneIndexList, uuid):
