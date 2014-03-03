@@ -123,14 +123,9 @@ class WIDSDaemon:
 
 
     def taskDrone(self, taskConfigDict):
-        print(taskConfigDict)
         try:
             droneIndexList = taskConfigDict.get('droneIndexList')
-            print(len(droneIndexList))
-            print('droneIndexList: {0}'.format(droneIndexList))
             for droneIndexInt in droneIndexList:
-                print('enter loop for index: {0}'.format(droneIndexList))
-                print('droneIndexInt: {0}'.format(droneIndexInt))
                 droneObject = self.drone_store.get(droneIndexInt, None)
                 task_uuid = taskConfigDict.get('uuid', None)
                 task_plugin = taskConfigDict.get('plugin', None)

@@ -21,6 +21,8 @@ class BeaconRequestMonitor(AnalyticModule):
         self.logutil.log('Starting Execution')
         self.active = True
 
+        self.registerEvent('test', {'channel':15})
+
         time.sleep(3)
         self.logutil.log('Submitting Drone Task Request')
 

@@ -3,11 +3,12 @@
 import os
 import json
 import traceback
+from datetime import datetime
 from uuid import uuid4
 from multiprocessing import Process
 from killerbeewids.wids.database import *
 from killerbeewids.wids.client import WIDSClient
-from killerbeewids.utils import KBLogUtil
+from killerbeewids.utils import KBLogUtil, dateToMicro
 
 #TODO - import sendPOST from utils
 
@@ -55,7 +56,7 @@ class AnalyticModule(Process):
     def getEvents(self, valueFilterList=[], new=False, maxcount=0, count=False):
         return self.database.getPackets(valueFilterList, new, maxcount, count)
 
-    def generateEvent(self, name, details):
+    def registerEvent(self, name, details):
         event_data = {'module':self.name, 'name':name, 'details':details, 'datetime':dateToMicro(datetime.utcnow())}
         return self.database.storeEvent(event_data)
 
