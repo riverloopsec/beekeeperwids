@@ -4,12 +4,14 @@ import os
 import sys
 import base64
 import traceback
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine, LargeBinary
+
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from killerbeewids.utils import KB_CONFIG_PATH
-Base = declarative_base()
 
+from killerbeewids.utils import KB_CONFIG_PATH
+
+Base = declarative_base()
 
 class Event(Base):
     __tablename__ = 'event'
@@ -24,7 +26,6 @@ class Event(Base):
         self.module   = str(event_data.get('module'))
         self.name     = str(event_data.get('name'))
         self.details  = event_data.get('details')
-
 
 class Packet(Base):
     __tablename__ = 'packet'
@@ -52,8 +53,6 @@ class Packet(Base):
             if uuid == self.uuid:
                 return True
         return False
-
-    
 
 
 class DatabaseHandler:
