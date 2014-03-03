@@ -2,8 +2,9 @@
 
 from killerbeewids.wids.database import *
 
+print('stuff')
 
-db = DatabaseHandler('kbwids.db')
+db = DatabaseHandler('wids0')
 dataType = Packet
 
 
@@ -42,13 +43,11 @@ def getAllPackets():
     for packet in db.session.query(Packet).all():
         packet.display()
 
+u1 = '03ff76a6-51dc-4bea-8eaf-1d82bbdf2a5b'
 
-getAllPackets()
+for packet in db.session.query(Packet).filter('uuid == "03ff76a6-51dc-4bea-8eaf-1d82bbdf2a5b"').all():
+    print(packet.uuid)
 
-print("========")
 
-getNewPackets()
 
-print("========")
 
-getPackets([('id','>',1), ('rssi','>',78)])

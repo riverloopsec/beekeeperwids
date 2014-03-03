@@ -64,7 +64,8 @@ class BeaconRequestMonitor(AnalyticModule):
                 ratio = float(n30)/an90
                 if ratio > 1.5:
                     self.logutil.log("Noticed increased beacon requests. Ratio {0}.".format(ratio))
-            except ZeroDivisonError:
+            #except ZeroDivisonError:
+            except ArithmeticError:
                 self.logutil.log("No 30 secs - 120 sec old beacon request data.")
             
             time.sleep(5)

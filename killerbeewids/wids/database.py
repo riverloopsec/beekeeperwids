@@ -27,7 +27,6 @@ class Packet(Base):
     pbytes = Column(LargeBinary(150))
 
     def __init__(self, pktdata):
-        print(pktdata)
         self.datetime = int(pktdata.get('datetime'))
         self.source   = str(pktdata.get('location'))
         self.dbm   = str(pktdata['dbm'])

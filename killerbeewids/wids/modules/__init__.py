@@ -40,17 +40,17 @@ class AnalyticModule(Process):
     def detaskDrone(self, uuid, plugin, channel, parameters):
         pass
 
-    def getPackets(self, queryFilter=[], uuid=[]):
+    def getPackets(self, queryFilter=[], uuid=None):
         query = self.database.session.query(Packet)
-        if not len(uuid) == 0:
-            query.filter(Packet.uuid.in_(uuid))
+        if not uuid == None:
+            query.filter('uuid == "{0}"'.format(uuid))
         for key,operator,value in queryFilter:
             #print(key,operator,value)
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
         results = query.all()
         return results
 
-    def getNewPackets(self, queryFilter=[], uuid=[]):
+    def getNewPackets(self, queryFilter=[], uuid=None):
         queryFilter.append(('id','>',self.lastPacketIndex))
         results = self.getPackets(queryFilter, uuid)
         if len(results) > 0:
