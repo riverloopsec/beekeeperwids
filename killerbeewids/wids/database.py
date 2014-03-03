@@ -94,17 +94,25 @@ class DatabaseHandler:
         # prepare base query
         query = self.session.query(Packet)
 
-        # filtery by packet values
+        # apply new packets filter
+        if new: query = query.filter('id > {0}'.format(self.packet_index))
+
+        # apply packet value filters
         for key,operator,value in filterList:
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
 
-        # apply maxcount limit
+        # apply maxcount filter
         if maxcount > 0: query = query.limit(maxcount)
 
         # issue query and get results
         results = query.all()
 
+        # if new packets are being queried, save the index
+        if new: self.packet_index = results[-1].id
+
         # filter packets by uuid (after query)
+        # it might be possible to perform this in the query itself for now,
+        # but probably not when we have lists of uuids in the packet
         temp = results
         results = []
         if len(uuidList) > 0:
@@ -113,7 +121,6 @@ class DatabaseHandler:
                     results.append(packet)    
         else:
             results = temp
-
 
         # return actual packets or packet count
         if not count:
