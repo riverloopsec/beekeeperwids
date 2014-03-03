@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import time
 import signal
 import logging
@@ -27,45 +25,39 @@ class BeaconRequestMonitor(AnalyticModule):
         self.logutil.log('Submitting Drone Task Request')
 
         # Task drones to capture beacon request packets.
-        #TODO does callback really need to be in each parameter field, especially hardcoded?
         parameters = {'callback': self.config.upload_url,
                       'filter'  : {
                          'fcf': (0x0300, 0x0300),
                          'byteoffset': (7, 0xff, 0x07)
                      }}
-        uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', task_channel=15, task_parameters=parameters)
 
-        # get packets from database and run statistics
+        #TODO channel needs to be set dynamically
+        uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
+                                    task_channel=15, task_parameters=parameters)
+
+        # Get packets from database and run statistics
         while self.active:
-            #TODO this loop should only select things by UUID from the task/filter entered above
-            print('Scanning for new packets.')
             datetime_now  = datetime.utcnow()
             datetime_t30  = datetime_now - timedelta(seconds=30)
             datetime_t120 = datetime_now - timedelta(seconds=120)
-            p30  = self.getPackets(queryFilter=[('datetime','>',dateToMicro(datetime_t30))],
-                                   uuid=[uuid_task1])
-            p120 = self.getPackets(queryFilter=[('datetime','<',dateToMicro(datetime_t30 )),
+            n30  = self.getPackets(queryFilter=[('datetime','>',dateToMicro(datetime_t30))],
+                                   uuid=[uuid_task1], count=True)
+            n120 = self.getPackets(queryFilter=[('datetime','<',dateToMicro(datetime_t30 )),
                                                 ('datetime','>',dateToMicro(datetime_t120))],
-                                   uuid=[uuid_task1])
-            n30  = len(p30)
-            an90 = len(p120)/3.0 #30-120 seconds is a 90 second range so 3 * 30sec intervals
-            self.logutil.log("Found {0} beacon requests in last 30 seconds, and {1} per 30 secs average over the prior 90 seconds (absolute {2}).".format(n30, an90, len(p120)))
-            # Every N scans, or every time a new "block" of scans occurs,
-            #   rasise an "informational level" event.
-            #TODO
-
+                                   uuid=[uuid_task1], count=True)
+            an90 = n120/3.0 #30-120 seconds is a 90 second range so 3 * 30sec intervals
+            self.logutil.log("debug: Found {0} beacon requests in last 30 seconds, and {1} per 30 secs average over the prior 90 seconds (absolute {2}).".format(n30, an90, n120))
             # Calculate a moving average of how many of these we typically
             #     see in a given time, and if we're significantly higher
             #     than that all of a sudden, we're concerned.
-            try:
-                ratio = float(n30)/an90
-                if ratio > 1.5:
-                    self.logutil.log("Noticed increased beacon requests. Ratio {0}.".format(ratio))
-            #except ZeroDivisonError:
-            except ArithmeticError:
-                self.logutil.log("No 30 secs - 120 sec old beacon request data.")
-            
-            time.sleep(5)
+            if n30 > 2 and n30 > (an90*1.5):
+                self.logutil.log("alert: Noticed increased beacon requests. (n30={0}, an90={1})".format(n30, an90))
+            # Look for cyclic patterns that indicate a slower scan, perhaps
+            #     one is switching across all the channels.
+            #TODO
+
+            time.sleep(10)
 
     def cleanup(self):
         pass
+
