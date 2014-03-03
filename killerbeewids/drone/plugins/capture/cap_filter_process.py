@@ -34,9 +34,10 @@ class FilterProcess(Process):
         # TODO - base64 encode pkt['bytes']
         pkt['uuid'] = uuid
         pkt['datetime'] = dateToMicro(pkt['datetime'])
-        #pkt['bytes'] = "0x" + ''.join( [ "%02X" % ord( x ) for x in pkt['bytes'] ] ).strip()
         pkt['bytes'] = base64.b64encode(pkt['bytes'])
-        if 0 in pkt: del pkt[0]
+        if 0 in pkt: del pkt[0] # Kill KillerBee's backwards compatible keys
+        if 1 in pkt: del pkt[1]
+        if 2 in pkt: del pkt[2]
         http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'Drone'}
         post_data_json = json.dumps({'uuid':uuid, 'pkt':pkt})
         post_object = urllib2.Request(cburl, post_data_json, http_headers)

@@ -1,12 +1,12 @@
-#!/usr/bin/python
-
 import os
 import sys
 import base64
-from killerbeewids.utils import KB_CONFIG_PATH
+
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+
+from killerbeewids.utils import KB_CONFIG_PATH
 
 Base = declarative_base()
 
@@ -24,6 +24,7 @@ class Packet(Base):
     rssi = Column(Integer())
     validcrc = Column(String(250))
     uuid = Column(String(250))
+    #NOTE: this can change from largebinary to varbinary or binary if db moves to mysql
     bytes = Column(String(150))
 
     def __init__(self, pktdata):
@@ -38,8 +39,6 @@ class Packet(Base):
 
     def display(self):
         print(self.id, self.datetime, self.source, self.dbm, self.rssi)
-
-# TODO - implement filters for packet queries
 
 '''
 http://docs.sqlalchemy.org/en/rel_0_9/orm/tutorial.html

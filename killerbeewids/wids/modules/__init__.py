@@ -40,19 +40,27 @@ class AnalyticModule(Process):
     def detaskDrone(self, uuid, plugin, channel, parameters):
         pass
 
-    def getPackets(self, queryFilter=[], uuid=[]):
+    def getPackets(self, queryFilter=[], uuid=[], count=False):
         query = self.database.session.query(Packet)
-        if not len(uuid) == 0:
+        if len(uuid) > 0:
             query.filter(Packet.uuid.in_(uuid))
         for key,operator,value in queryFilter:
             #print(key,operator,value)
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
-        results = query.all()
-        return results
+        if count:
+            return query.count()
+        else:
+            return query.all()
 
     def getNewPackets(self, queryFilter=[], uuid=[]):
+        #TODO there is an issue where 2 different getNewPackets calls in the
+        #     same module will set different lastPacketIndex values and thus
+        #     may miss or duplicate packets!
         queryFilter.append(('id','>',self.lastPacketIndex))
         results = self.getPackets(queryFilter, uuid)
+        #TODO need to make sure we're indexing to the highest id, as 
+        #     are we sure the DB will always return (in this function) with the
+        #     highest ID last?
         if len(results) > 0:
             self.lastPacketIndex = results[-1].id
         return results
