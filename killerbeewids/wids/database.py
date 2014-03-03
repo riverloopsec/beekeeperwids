@@ -18,13 +18,16 @@ class Event(Base):
     module   = Column(String(100))
     name     = Column(String(100))
     details  = Column(PickleType())
+    uuids    = Column(PickleType())
+    packets  = Column(PickleType())
 
     def __init__(self, event_data):
         self.datetime = int(event_data.get('datetime'))
         self.module   = str(event_data.get('module'))
         self.name     = str(event_data.get('name'))
-        self.details  = event_data.get('details')
-
+        self.details  = event_data.get('details')       # arbitrary data the module wants to pass for analysis
+        self.uuids    = event_data.get('uuids')         # list of strigns that correspond to related uuids
+        self.packets  = event_data.get('packets')       # list of integers that correspond to related packets IDs 
 
 class Packet(Base):
     __tablename__ = 'packet'
@@ -70,8 +73,7 @@ class DatabaseHandler:
         Base.metadata.create_all(self.engine)
 
     def close(self):
-        #TODO - how to close a connection?
-        pass
+        self.session.close()
 
     def storeElement(self, element):
         try:
@@ -90,8 +92,6 @@ class DatabaseHandler:
 
 
     #TODO - add functionality to search by date/times
-    #TODO - add functionality to search for byte patterns
-
     def getPackets(self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
         # verify parameters are valid
         if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
@@ -113,9 +113,6 @@ class DatabaseHandler:
         # issue query and get results
         results = query.all()
 
-        # if new packets are being queried, save the index
-        if new: self.packet_index = results[-1].id
-
         # filter packets by uuid (after query)
         # it might be possible to perform this in the query itself for now,
         # but probably not when we have lists of uuids in the packet
@@ -129,6 +126,9 @@ class DatabaseHandler:
         else:
             results = temp
 
+        # if new packets are being queried, save the index
+        if new and len(results) > 0: self.packet_index = results[-1].id
+
         # return actual packets or packet count
         if not count:
             return results
@@ -136,9 +136,9 @@ class DatabaseHandler:
             return len(results) 
 
 
-    def getEvents(self, analyticModule=None, valuefilterList=[], new=False, maxcount=0, count=False):
+    def getEvents(self, analyticModule=None, valueFilterList=[], new=False, maxcount=0, count=False):
         # verify parameters are valid
-        if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
+        if not type(valueFilterList) is list or not type(maxcount) is int:
             raise Exception("'filterList' and 'uuidList' must be type lists")
 
         # prepare base query
@@ -166,7 +166,8 @@ class DatabaseHandler:
         else:
             return len(results) 
 
-   
+    def getEventRelatedPackets(self, packetIDList):
+        pass
 
 
 
