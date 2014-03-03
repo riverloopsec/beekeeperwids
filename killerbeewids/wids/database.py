@@ -3,17 +3,24 @@
 import os
 import sys
 import base64
-from killerbeewids.utils import KB_CONFIG_PATH
+import traceback
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-
+from killerbeewids.utils import KB_CONFIG_PATH
 Base = declarative_base()
 
-'''
+
 class Event(Base):
-        __tablename__ = 'event'
-'''
+    __tablename__ = 'event'
+    id = Column(Integer, primary_key=True)
+    source = Column(String(250))
+    data = Column(String(250))
+
+    def __init__(self, source, data):
+        self.source = source
+        self.data = data
+
 
 class Packet(Base):
     __tablename__ = 'packet'
@@ -32,17 +39,9 @@ class Packet(Base):
         self.dbm   = str(pktdata['dbm'])
         self.rssi  = int(pktdata['rssi'])
         self.uuid  = str(pktdata['uuid'])
-        #self.validcrc = str(pktdata['validcrc'])
         self.pbytes = base64.b64decode(pktdata['bytes'])
+        #self.validcrc = str(pktdata['validcrc'])
 
-    def display(self):
-        print(self.id, self.datetime, self.source, self.dbm, self.rssi)
-
-# TODO - implement filters for packet queries
-
-'''
-http://docs.sqlalchemy.org/en/rel_0_9/orm/tutorial.html
-'''
 
 class DatabaseHandler:
     def __init__(self, database, path=KB_CONFIG_PATH):
@@ -51,44 +50,62 @@ class DatabaseHandler:
         if not os.path.isfile(database):
             self.createDB()
         self.session = sessionmaker(bind=self.engine)()
+        self.packet_index = 0
+        self.event_index = 0
 
     def createDB(self):
         Base.metadata.create_all(self.engine)
 
-    def storePacket(self, pktdata):
+    def storeElement(self, element):
         try:
-            self.session.add(Packet(pktdata))
+            self.session.add(element)
             self.session.commit()
-        except Exception as e:
-            print(e)
+            return True
+        except Exception:
+            traceback.print_exc()
+            return False
 
-    def getPackets(self, pktfilter=None, maxcount=None):
-        results = self.session.query(Packet).all()
+    def storePacket(self, packet_data):
+        return self.storeElement(Packet(packet_data))
+
+    def storeEvent(self, event_data):
+        returen self.storeElement(Event(event_data))
+
+    def getElement(self, elementClass, filters=[], new=False):
+        query = self.session.query(elementClass)
+        results = query.all()
         return results
 
-    def checkNewPackets(self):
-        return True
+    def getPackets(self, filters=[], new=False):
+        return self.getElement(Packet, filters, new)
 
-    def storeMessage(self, messageid, src, dst, code, request_data):
-        self.session.add(Message(messageid, src, dst, code, request_data))
-        self.session.commit()
+    def getEvents(self, filters=[], new=False):
+        return self.getElement(Event, filters, new)
 
-    def getMessages(self, msgfilter=None):
-        results = self.session.query(Message).all()
+
+    '''
+
+    def getNewPackets(self, queryFilter=[], uuid=None): 
+        queryFilter.append(('id','>',self.lastPacketIndex)) 
+        results = self.getPackets(queryFilter, uuid) 
+        if len(results) > 0: 
+            self.lastPacketIndex = results[-1].id 
+        return results 
+
+    def getPackets(self, queryFilter=[], uuid=None, new=False):
+        query = self.database.session.query(Packet)
+        if not uuid == None:
+            query.filter('uuid == "{0}"'.format(uuid))
+        for key,operator,value in queryFilter:
+            #print(key,operator,value)
+            query = query.filter('{0}{1}{2}'.format(key,operator,value))
+        results = query.all()
         return results
+    '''
 
-    def storeTaskRequest(self, uuid_str, plugin_str, channel_int, parameters_dict):
-        tr = TaskRequest(uuid_str, plugin_str, channel_int, parameters_dict)
-        self.session.add(tr)
-        self.session.commit()
 
-    def getTaskRequests(self):
-        results = self.session.query(TaskRequest).all()
-        return results
+   
 
-    def checkNewMessages(self):
-        return True
 
-    def store(self, element):
-        self.session.add(element)
-        self.session.commit()
+
+
