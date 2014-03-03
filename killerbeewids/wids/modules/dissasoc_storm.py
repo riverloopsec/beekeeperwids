@@ -50,7 +50,7 @@ class DisassociationStormMonitor(AnalyticModule):
 
         # Get packets from database and run statistics
         while self.active:
-            pkts = self.getNewPackets(uuid=[uuid_dot15d4, uuid_zbnwk])
+            pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
             self.logutil.log("debug: Found {0} packets since last check.".format(len(pkts)))
             for pkt in pkts:
                 self.logutil.log("debug: Got pkt from DB: {0}".format(pkt))
