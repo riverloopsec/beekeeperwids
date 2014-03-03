@@ -5,7 +5,7 @@ from multiprocessing import Process
 from time import sleep
 from datetime import datetime, timedelta
 
-from scapy.all import Dot15d4FCS
+from scapy.all import Dot15d4FCS, Dot15d4CmdDisassociation, ZigbeeNWKCommandPayload
 
 from killerbeewids.wids.modules import AnalyticModule
 from killerbeewids.utils import dateToMicro
@@ -54,7 +54,13 @@ class DisassociationStormMonitor(AnalyticModule):
             self.logutil.log("debug: Found {0} packets since last check.".format(len(pkts)))
             for pkt in pkts:
                 self.logutil.log("debug: Got pkt from DB: {0}".format(pkt))
-                spkt = Dot15d4(pkt['bytes'])
+                spkt = Dot15d4FCS(pkt.pbytes)
+                if Dot15d4CmdDisassociation in spkt:
+                    self.logutil.log("alert: have 802.15.4 Disassociation Frame: {0}.".format(spkt.summary()))
+                elif ZigbeeNWKCommandPayload in spkt:
+                    self.logutil.log("alert: have ZigbeeNWKCommandPayload Frame: {0}.".format(spkt.summary()))
+                else:
+                    self.logutil.log("debug: query got us a frame we didn't want: {0}.".format(spkt.summary()))
                 #TODO
 
             time.sleep(15)
