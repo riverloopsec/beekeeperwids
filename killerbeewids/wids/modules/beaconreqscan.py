@@ -24,6 +24,9 @@ class BeaconRequestMonitor(AnalyticModule):
         time.sleep(3)
         self.logutil.log('Submitting Drone Task Request')
 
+        #TODO - pull this from settings
+        channel = 15
+
         # Task drones to capture beacon request packets.
         parameters = {'callback': self.config.upload_url,
                       'filter'  : {
@@ -33,7 +36,7 @@ class BeaconRequestMonitor(AnalyticModule):
 
         #TODO channel needs to be set dynamically
         uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
-                                    task_channel=15, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters)
 
         if uuid_task1 == False:
             self.logutil.log('Failed to Task Drone')
@@ -59,6 +62,9 @@ class BeaconRequestMonitor(AnalyticModule):
             #     than that all of a sudden, we're concerned.
             if n30 > 2 and n30 > (an90*1.5):
                 self.logutil.log("alert: Noticed increased beacon requests. (n30={0}, an90={1})".format(n30, an90))
+
+                self.registerEvent(name='IncreasedBeaconRequestDetection', details={'channel':channel, 'n30':n30, 'n120':n120, 'an90':an90})
+
             # Look for cyclic patterns that indicate a slower scan, perhaps
             #     one is switching across all the channels.
             #TODO

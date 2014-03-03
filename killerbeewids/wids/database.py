@@ -14,24 +14,28 @@ Base = declarative_base()
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)
-    source = Column(String(250))
-    data = Column(String(250))
+    datetime = Column(Integer())
+    module   = Column(String(100))
+    name     = Column(String(100))
+    details  = Column(PickleType())
 
-    def __init__(self, source, data):
-        self.source = source
-        self.data = data
+    def __init__(self, event_data):
+        self.datetime = int(event_data.get('datetime'))
+        self.module   = str(event_data.get('module'))
+        self.name     = str(event_data.get('name'))
+        self.details  = event_data.get('details')
 
 
 class Packet(Base):
     __tablename__ = 'packet'
     id = Column(Integer, primary_key=True)
-    source = Column(String(250))
+    source   = Column(String(250))
     datetime = Column(Integer())
-    dbm = Column(Integer)
-    rssi = Column(Integer())
+    dbm      = Column(Integer)
+    rssi     = Column(Integer())
     validcrc = Column(Boolean)
-    uuid = Column(String(250))
-    pbytes = Column(LargeBinary(150))
+    uuid     = Column(String(250))
+    pbytes   = Column(LargeBinary(150))
 
     def __init__(self, pktdata):
         self.datetime = int(pktdata.get('datetime'))
@@ -42,11 +46,9 @@ class Packet(Base):
         self.pbytes   = base64.b64decode(pktdata['bytes'])
         self.validcrc = pktdata['validcrc']
 
+    # TODO - modify this so that self.uuid is a list not a single string
     def checkUUID(self, uuidList):
-        # check if any of the UUIDs in the provided list match the Packet's UUIDs list
-        # TODO - modify this so that self.uuid is a list not a single string
         for uuid in uuidList:
-            #if uuid in self.uuid:
             if uuid == self.uuid:
                 return True
         return False
@@ -91,7 +93,6 @@ class DatabaseHandler:
     #TODO - add functionality to search for byte patterns
 
     def getPackets(self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
-
         # verify parameters are valid
         if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
             raise Exception("'filterList' and 'uuidList' must be type lists")
@@ -134,30 +135,36 @@ class DatabaseHandler:
         else:
             return len(results) 
 
-    def getEvents(self, filters=[], new=False):
-        return self.getElement(Event, filters, new)
 
+    def getEvents(self, analyticModule=None, valuefilterList=[], new=False, maxcount=0, count=False):
+        # verify parameters are valid
+        if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
+            raise Exception("'filterList' and 'uuidList' must be type lists")
 
-    '''
+        # prepare base query
+        query = self.session.query(Event)
 
-    def getNewPackets(self, queryFilter=[], uuid=None): 
-        queryFilter.append(('id','>',self.lastPacketIndex)) 
-        results = self.getPackets(queryFilter, uuid) 
-        if len(results) > 0: 
-            self.lastPacketIndex = results[-1].id 
-        return results 
+        # apply new packets filter
+        if new: query = query.filter('id > {0}'.format(self.event_index))
 
-    def getPackets(self, queryFilter=[], uuid=None, new=False):
-        query = self.database.session.query(Packet)
-        if not uuid == None:
-            query.filter('uuid == "{0}"'.format(uuid))
-        for key,operator,value in queryFilter:
-            #print(key,operator,value)
+        # apply value filters
+        for key,operator,value in valueFilterList:
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
-        results = query.all()
-        return results
-    '''
 
+        # apply maxcount filter
+        if maxcount > 0: query = query.limit(maxcount)
+
+        # issue query and get results
+        results = query.all()
+
+        # if new packets are being queried, save the index
+        if new: self.event_index = results[-1].id
+
+        # return actual packets or packet count
+        if not count:
+            return results
+        else:
+            return len(results) 
 
    
 
