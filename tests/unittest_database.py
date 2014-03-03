@@ -64,30 +64,24 @@ class TestDatabaseHandler(unittest.TestCase):
         self.assertEqual(count, 100)
 
     def test_get_t1_count(self):
-        count = self.db.getPackets(uuidList=[t1_uuid], count=True)    
+        count = self.db.getPackets(uuidFilterList=[t1_uuid], count=True)    
         self.assertEqual(count, t1_count)
 
     def test_get_t2_packets(self):
-        count = self.db.getPackets(uuidList=[t2_uuid], count=True)    
+        count = self.db.getPackets(uuidFilterList=[t2_uuid], count=True)    
         self.assertEqual(count, t2_count)
 
     def test_filter_rssi_gt(self):
-        count = self.db.getPackets(filterList=[('rssi','>',78)], count=True)
+        count = self.db.getPackets(valueFilterList=[('rssi','>',78)], count=True)
         self.assertEqual(count, rssi_gt_78)
 
     def test_filter_rssi_eq(self):
-        count = self.db.getPackets(filterList=[('rssi','==',78)], count=True)
+        count = self.db.getPackets(valueFilterList=[('rssi','==',78)], count=True)
         self.assertEqual(count, rssi_eq_78)
 
     def test_filter_rssi_lt(self):
-        count = self.db.getPackets(filterList=[('rssi','<',78)], count=True)
+        count = self.db.getPackets(valueFilterList=[('rssi','<',78)], count=True)
         self.assertEqual(count, rssi_lt_78)
-
-    def test_filter_dbm(self):
-        pass
-
-    def test_filter_source(self):
-        pass
 
     def test_filter_datetime(self):
         pass
@@ -95,15 +89,9 @@ class TestDatabaseHandler(unittest.TestCase):
     def test_filter_bytes(self):
         pass
 
-    def test_mix_filters_1(self):
-        #count = self.db.getPackets(filterList=[('rssi','>',78))
-        pass
-
-    def test_mix_filters_2(self):
-        pass
-
-    def test_mix_filters_3(self):
-        pass
+    def test_mix_filters(self):
+        count = self.db.getPackets(valueFilterList=[('rssi','>',78)], uuidFilterList=[t1_uuid], count=True)
+        self.assertEqual(count, 76)
 
 
 if __name__ == '__main__':

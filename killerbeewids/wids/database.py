@@ -86,9 +86,13 @@ class DatabaseHandler:
     def storeEvent(self, event_data):
         return self.storeElement(Event(event_data))
 
-    def getPackets(self, filterList=[], uuidList=[], new=False, maxcount=0, count=False):
+
+    #TODO - add functionality to search by date/times
+    #TODO - add functionality to search for byte patterns
+
+    def getPackets(self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
         # verify parameters are valid
-        if not type(filterList) is list or not type(uuidList) is list or not type(maxcount) is int:
+        if not type(valueFilterList) is list or not type(uuidFilterList) is list or not type(maxcount) is int:
             raise Exception("'filterList' and 'uuidList' must be type lists")
 
         # prepare base query
@@ -97,8 +101,8 @@ class DatabaseHandler:
         # apply new packets filter
         if new: query = query.filter('id > {0}'.format(self.packet_index))
 
-        # apply packet value filters
-        for key,operator,value in filterList:
+        # apply value filters
+        for key,operator,value in valueFilterList:
             query = query.filter('{0}{1}{2}'.format(key,operator,value))
 
         # apply maxcount filter
@@ -113,11 +117,12 @@ class DatabaseHandler:
         # filter packets by uuid (after query)
         # it might be possible to perform this in the query itself for now,
         # but probably not when we have lists of uuids in the packet
+        # TODO - look into above
         temp = results
         results = []
-        if len(uuidList) > 0:
+        if len(uuidFilterList) > 0:
             for packet in temp:
-                if packet.checkUUID(uuidList):
+                if packet.checkUUID(uuidFilterList):
                     results.append(packet)    
         else:
             results = temp
