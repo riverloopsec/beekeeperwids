@@ -8,8 +8,6 @@ from killerbeewids.wids.database import *
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil
 
-# TODO - incorporate shutdown event & implement proper shutdown sequence
-# TODO - implement proper evenet generation mechanism
 
 class AnalyticModule(Process):
 
@@ -18,26 +16,27 @@ class AnalyticModule(Process):
         self.name = name
         self.settings = settings
         self.config = config
-        self.tasks = {}
-        self.lastPacketIndex = 0
-        self.active = False
-        self.running = False
         self.database = DatabaseHandler(self.config.name)
         self.logutil = KBLogUtil(self.config.name, self.name, None)
         self.widsclient = WIDSClient(self.config.server_ip, self.config.server_port)
+        self.tasks = {}
+        self.active = False
+        self.running = False
 
     def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters):
-        task_uuid = str((uuid4()))
-        json_result = self.widsclient.taskDrone(droneIndexList, task_uuid, task_plugin, task_channel, task_parameters)
-        result = json.loads(json_result)
-        success = result.get('success')
-        if success:
-            self.tasks[task_uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters}
-            return task_uuid
-        else:
-            return None
+        try:
+            task_uuid = str((uuid4()))
+            json_result = self.widsclient.taskDrone(droneIndexList, task_uuid, task_plugin, task_channel, task_parameters)
+            result = json.loads(json_result)
+            if result.get('success'): 
+                self.tasks[task_uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters, 'drones':droneIndexList}
+                return task_uuid 
+            else:
+                return False
+        except Exception:
+            return False
 
-    def detaskDrone(self, uuid, plugin, channel, parameters):
+    def detaskDrone(self, droneIndexList, uuid):
         pass
 
     def getPackets(self, queryFilter=[], uuid=[], count=False):
@@ -65,20 +64,22 @@ class AnalyticModule(Process):
             self.lastPacketIndex = results[-1].id
         return results
 
-    def getEvents(self):
-        pass
-
-    def generateEvent(self):
-        pass
-
-    def registerEvent(self):
-        pass
-
     def detaskAll(self):
-        '''
-        This function will detask all the running tasks on the drone prior to shutdown
-        '''
-        pass
+        for task in self.tasks.values():
+            uuid = task.get('uuid')
+            droneIndexList = task.get('drones')
+            self.detaskDrone(droneIndexList, uuid)
+
+    '''
+    def getPackets(self, filters=[], new=False):
+        return self.database.getPackets(filters, new)
+    '''
+    
+    def getEvents(self, filters=[], new=False):
+        return self.database.getEvents(filters, new)
+
+    def generateEvent(self, event_data):
+        return self.database.storeEvent(event_data)
 
     def shutdown(self):
         self.logutil.log('\t\tReceived Shutdown Request')
@@ -89,3 +90,6 @@ class AnalyticModule(Process):
         self.cleanup()
         self.logutil.log('\t\t\tModule Shutdown Complete')
         self.terminate()
+
+
+
