@@ -43,6 +43,14 @@ class AnalyticModule(Process):
     def detaskDrone(self, droneIndexList, uuid):
         pass
 
+
+    def getPackets, self, valueFilterList=[], uuidFilterList=[], new=False, maxcount=0, count=False):
+        self.database.getPackets(valueFilterList, uuidFilterList, new, maxcount, count)
+
+    '''
+    this code is being moved directly to DatabaseHandler
+
+
     def getPackets(self, queryFilter=[], uuid=[], count=False):
         query = self.database.session.query(Packet)
         if len(uuid) > 0:
@@ -68,16 +76,16 @@ class AnalyticModule(Process):
             self.lastPacketIndex = results[-1].id
         return results
 
+    def getPackets(self, filters=[], new=False):
+        return self.database.getPackets(filters, new)
+    '''
+
+
     def detaskAll(self):
         for task in self.tasks.values():
             uuid = task.get('uuid')
             droneIndexList = task.get('drones')
             self.detaskDrone(droneIndexList, uuid)
-
-    '''
-    def getPackets(self, filters=[], new=False):
-        return self.database.getPackets(filters, new)
-    '''
     
     def getEvents(self, filters=[], new=False):
         return self.database.getEvents(filters, new)
