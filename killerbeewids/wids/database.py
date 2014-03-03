@@ -4,12 +4,14 @@ import os
 import sys
 import base64
 import traceback
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, PickleType, create_engine, LargeBinary
+
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from killerbeewids.utils import KB_CONFIG_PATH
-Base = declarative_base()
 
+from killerbeewids.utils import KB_CONFIG_PATH
+
+Base = declarative_base()
 
 class Event(Base):
     __tablename__ = 'event'
@@ -28,6 +30,7 @@ class Event(Base):
         self.details  = event_data.get('details')       # arbitrary data the module wants to pass for analysis
         self.uuids    = event_data.get('uuids')         # list of strigns that correspond to related uuids
         self.packets  = event_data.get('packets')       # list of integers that correspond to related packets IDs 
+        self.details  = event_data.get('details')
 
 class Packet(Base):
     __tablename__ = 'packet'
@@ -55,8 +58,6 @@ class Packet(Base):
             if uuid == self.uuid:
                 return True
         return False
-
-    
 
 
 class DatabaseHandler:

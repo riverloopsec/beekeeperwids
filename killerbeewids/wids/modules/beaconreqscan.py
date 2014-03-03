@@ -20,14 +20,13 @@ class BeaconRequestMonitor(AnalyticModule):
     def run(self):
         self.logutil.log('Starting Execution')
         self.active = True
+        channel = self.settings.get('channel')
 
-        self.registerEvent('test', {'channel':15})
+        #TODO remove test:
+        self.registerEvent('test', {'channel':channel})
 
         time.sleep(3)
         self.logutil.log('Submitting Drone Task Request')
-
-        #TODO - pull this from settings
-        channel = 15
 
         # Task drones to capture beacon request packets.
         parameters = {'callback': self.config.upload_url,

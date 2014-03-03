@@ -22,6 +22,7 @@ class DisassociationStormMonitor(AnalyticModule):
     def run(self):
         self.logutil.log('Starting Execution')
         self.active = True
+        channel = self.settings.get('channel')
 
         time.sleep(3)
         self.logutil.log('Submitting Drone Task Request')
@@ -35,7 +36,7 @@ class DisassociationStormMonitor(AnalyticModule):
                      }}
         #TODO channel needs to be set dynamically
         uuid_dot15d4 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
-                                    task_channel=15, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters)
 
         # This will collect the ZigBee version:
         parameters['filter'] = {
@@ -46,7 +47,7 @@ class DisassociationStormMonitor(AnalyticModule):
                      }
         #TODO channel needs to be set dynamically
         uuid_zbnwk = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin',
-                                    task_channel=15, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters)
 
         # Get packets from database and run statistics
         while self.active:
@@ -55,13 +56,56 @@ class DisassociationStormMonitor(AnalyticModule):
             for pkt in pkts:
                 self.logutil.log("debug: Got pkt from DB: {0}".format(pkt))
                 spkt = Dot15d4FCS(pkt.pbytes)
+
+                msg         = None
+                device      = None
+                coordinator = None
+                panid       = spkt.dest_panid
+
+                # It may be an 802.15.4 disassociation, which our uuid_dot15d4 should collect
                 if Dot15d4CmdDisassociation in spkt:
                     self.logutil.log("alert: have 802.15.4 Disassociation Frame: {0}.".format(spkt.summary()))
+                    if spkt.disassociation_reason == 0x02: # The device wishes to leave the PAN
+                        msg         = "802.15.4 Dissassociation Frame (Reason: Device Wishes to Leave)"
+                        device      = spkt.src_addr
+                        coordinator = spkt.dest_addr
+                    elif spkt.disassociation_reason == 0x01: # The coordinator wishes the device to leave the PAN
+                        msg         = "802.15.4 Dissassociation Frame (Reason: Coordinator Wishes Device to Leave)"
+                        device      = spkt.dest_addr
+                        coordinator = spkt.src_addr
+                    else:
+                        msg         = "802.15.4 Dissassociation Frame (Reason has an unexpected value)"
+                # Or it's a ZigBee frame, which our uuid_zbnwk task should request
                 elif ZigbeeNWKCommandPayload in spkt:
                     self.logutil.log("alert: have ZigbeeNWKCommandPayload Frame: {0}.".format(spkt.summary()))
+                    if spkt.cmd_identifier != "leave":
+                        continue    # It isn't the disassoc we're looking for
+                    elif spkt.request = 0:  # Device leaving
+                        msg         = "ZigBee Dissassociation Command (Reason: Device Wishes to Leave)"
+                        device      = spkt.ext_src  #TODO include spkt.src_addr which is the short address
+                        coordinator = spkt.ext_dst
+                        if spkt.src_addr != spkt.source:
+                            msg    += " (Unexpected mismatch of source short addresses)"
+                        if spkt.dest_addr != 0x0 or spkt.destination != 0x0:
+                            msg    += " (Unexpected non-0x0000 value for destination, expect it to target the coordinator)"
+                    elif spkt.request = 1:  # Coordinator booting device
+                        msg         = "ZigBee Dissassociation Command (Reason: Coordinator Wishes Device to Leave)"
+                        device      = spkt.ext_dst
+                        coordinator = spkt.ext_src  #TODO include spkt.src_addr which is the short address
+                        if spkt.dest_addr != spkt.destination:
+                            msg    += " (Unexpected mismatch of source short addresses)"
+                        if spkt.src_addr != 0x0 or spkt.source != 0x0:
+                        msg    += " (Unexpected non-0x0000 value for source, expect it to come from the coordinator)"
+                    else:
+                        msg         = "802.15.4 Dissassociation Frame (Reason has an unexpected value)"
+                # Or we don't want this packet, which shouldn't happen based on our front-end selection
                 else:
                     self.logutil.log("debug: query got us a frame we didn't want: {0}.".format(spkt.summary()))
-                #TODO
+                    continue
+                
+                # Now publish the event
+                #TODO switch to correct call to DB
+                self.logutil.log("alert: {0} / coordinator={1}, device={2}.".format(msg, coordinator, device))
 
             time.sleep(15)
 
