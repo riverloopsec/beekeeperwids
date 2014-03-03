@@ -17,8 +17,9 @@ from killerbeewids.utils import KBLogUtil
 from killerbeewids.drone import DroneClient
 from killerbeewids.wids.database import DatabaseHandler
 from killerbeewids.wids.engine import WIDSRuleEngine
-from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
 
+from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
+from killerbeewids.wids.modules.dissasoc_storm import DisassociationStormMonitor
 
 class WIDSDaemon:
 
@@ -150,8 +151,8 @@ class WIDSDaemon:
 
 
     def loadModuleClass(self, module):
-        if module == 'BeaconRequestMonitor':
-            return BeaconRequestMonitor
+        if module == 'BeaconRequestMonitor'       : return BeaconRequestMonitor
+        if module == 'DisassociationStormMonitor' : return DisassociationStormMonitor
 
     def loadModule(self, moduleConfigDict):
         try:
@@ -446,7 +447,8 @@ class WIDSConfig:
         self.server_ip = '127.0.0.1'
         self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_port)
         self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
-        self.modules = [{'name':'BeaconRequestMonitor', 'settings':{}}]
+        #self.modules = [{'name':'BeaconRequestMonitor', 'settings':{}}]
+        self.modules = [{'name':'DisassociationStormMonitor', 'settings':{}}]
 
     def loadConfig(self, config):
         #TODO load all parameters above from the config file, and call this at startup
