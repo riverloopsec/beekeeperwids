@@ -4,12 +4,13 @@ import os
 import sys
 import base64
 import traceback
+from datetime import datetime
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary, PickleType, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
-from killerbeewids.utils import KB_CONFIG_PATH
+from killerbeewids.utils import KB_CONFIG_PATH, dateToMicro
 
 Base = declarative_base()
 
@@ -17,20 +18,18 @@ class Alert(Base):
     __tablename__ = 'alert'
     id = Column(Integer, primary_key=True)
     datetime = Column(Integer())
-    module   = Column(String(100))
     name     = Column(String(100))
 
     def __init__(self, event_data):
         self.datetime = int(event_data.get('datetime'))
-        self.module   = str(event_data.get('module'))
         self.name     = str(event_data.get('name'))
 
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)
     datetime = Column(Integer())
-    module   = Column(String(100))
-    name     = Column(String(100))
+    module   = Column(String(150))
+    name     = Column(String(500))
     details  = Column(PickleType())
     uuids    = Column(PickleType())
     packets  = Column(PickleType())
@@ -102,6 +101,10 @@ class DatabaseHandler:
 
     def storeEvent(self, event_data):
         return self.storeElement(Event(event_data))
+
+    def storeAlert(self, alert_name):
+        return self.storeElement(Alert({'name':alert_name, 'datetime':dateToMicro(datetime.utcnow())}))
+        
 
 
     #TODO - add functionality to search by date/times
@@ -181,6 +184,9 @@ class DatabaseHandler:
 
     def getEventRelatedPackets(self, packetIDList):
         pass
+
+    def eventQuery(self):
+        return self.session.query(Event)
 
 
 

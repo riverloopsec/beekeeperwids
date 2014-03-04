@@ -8,10 +8,9 @@ import json
 import traceback
 from time import sleep
 
-from killerbeewids.wids import WIDSDaemon
+from killerbeewids.wids.daemon import WIDSDaemon
 from killerbeewids.wids.client import WIDSClient
-from killerbeewids.utils import KBLogUtil
-from killerbeewids.utils import terminal_ui
+from killerbeewids.utils import KBLogUtil, terminal_ui
 
 def debug(args):
     pass
@@ -98,6 +97,30 @@ def monitor(args):
         status(args)
         sleep(args.refresh)
 
+
+#############
+# this is so damn hacky ...
+#
+def monitoralerts(args):
+    while True:
+        os.system('clear') 
+        alerts(args)
+        sleep(3)
+
+def alerts(args):
+    json_data = WIDSClient(args.address, args.port).getAlerts()
+    results = json.loads(json_data)
+
+    print("\n[+] WIDS Alerts\n")
+    if results.get('success'):
+        for line in json.loads(results.get('data')):
+            print(line)
+    print('\n\n')
+
+#
+###############
+
+
 #TODO - factor out this code
 def status(args):
     '''
@@ -152,12 +175,18 @@ if __name__ == '__main__':
     parser.add_argument('-moduleindex', action='store')
     parser.add_argument('-modulename', action='store')
     parser.add_argument('-modulesettings', action='store')
+    parser.add_argument('-alerts', action='store_true')
+    parser.add_argument('-monitoralerts', action='store_true')
     parser.add_argument('-v', action='store_true')
     args = parser.parse_args()
 
     if args.debug:
         debug(args)
-    if args.listener:
+    elif args.alerts:
+        alerts(args)
+    elif args.monitoralerts:
+        monitoralerts(args)
+    elif args.listener:
         listener(args)
     elif args.run:
         run(args)

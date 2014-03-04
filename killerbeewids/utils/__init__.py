@@ -67,6 +67,9 @@ class KBLogUtil:
 
     def debug(self, msg):
         self.log('DEBUG: {0}'.format(msg))
+
+    def dev(self, msg):
+        self.log('DEV-DEBUG: {0}'.format(msg))
         
     def cleanup(self):
         self.endlog()

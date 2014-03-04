@@ -13,6 +13,14 @@ class WIDSClient:
         self.address = address
         self.port = port
 
+    def getAlerts(self):
+        resource = '/alert'
+        return self.sendPOST(self.address, self.port, resource, {})
+
+    def generateAlert(self, alert_name):
+        resource = '/alert/generate'
+        return self.sendPOST(self.address, self.port, resource, {'alert_name':alert_name})
+
     def getStatus(self):
         resource = '/status'
         return self.sendPOST(self.address, self.port, resource, {})

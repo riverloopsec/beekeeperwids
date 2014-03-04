@@ -6,10 +6,11 @@ from multiprocessing import Pipe, Event, Manager
 from killerbeewids.utils import KBLogUtil
 
 class BaseDronePlugin(object):
-    def __init__(self, interfaces, channel, drone):
+    def __init__(self, interfaces, channel, drone, name):
         #TODO: add interface validation
 
         self.interfaces = interfaces
+        self.name = name
         self.kb = None
         self.channel = channel
         self.drone = drone
@@ -22,7 +23,7 @@ class BaseDronePlugin(object):
         self.active = True
         self.desc = None
         self.pid = os.getpid()
-        self.logutil = KBLogUtil(self.drone, 'PluginX', None)
+        self.logutil = KBLogUtil(self.drone, '{0}.Main'.format(self.name))
 
     def info(self):
         info = {}

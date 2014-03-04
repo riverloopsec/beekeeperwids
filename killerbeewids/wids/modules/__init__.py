@@ -58,7 +58,7 @@ class AnalyticModule(Process):
         return self.database.getPackets(valueFilterList, new, maxcount, count)
 
     def registerEvent(self, name, details={}, related_packets=[], related_uuids=[]):
-        event_data = {'module':self.name, 'name':name, 'details':detailsDict, 'related_packets':related_packets, 'related_uuids':related_uuids, 'datetime':dateToMicro(datetime.utcnow())}
+        event_data = {'module':self.name, 'name':name, 'details':details, 'related_packets':related_packets, 'related_uuids':related_uuids, 'datetime':dateToMicro(datetime.utcnow())}
         return self.database.storeEvent(event_data)
 
     def shutdown(self):

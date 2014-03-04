@@ -7,8 +7,9 @@ jvazquez 2013 riverloopsecurity.com
 
 import unittest
 
-from killerbeewids.wids.database import DatabaseHandler
+from killerbeewids.wids.database import DatabaseHandler, Event
 
+total_count = 36
 
 class TestDatabaseHandlerEvents(unittest.TestCase):
     def setUp(self):
@@ -19,10 +20,19 @@ class TestDatabaseHandlerEvents(unittest.TestCase):
         self.db.close()
 
     def test_event_get_all(self):
-        events = self.db.getEvents()
-
-        for event in events:
+        count = self.db.getEvents(count=True)
+        self.assertEqual(count, total_count)
+        for event in self.db.getEvents():
             print(event.id, event.datetime, event.module, event.name, event.details, event.uuids, event.packets)
+
+    def test_event_get_filter_module(self):
+        count = self.db.session.query(Event).filter(Event.module == 'DisassociationStormMonitor').count()
+        self.assertEqual(count, 24)
+
+    def test_event_get_mixfilter(self):
+        count = self.db.session.query(Event).filter(Event.module == 'DisassociationStormMonitor').filter(Event.name == 'ZigbeeNWKCommandPayload Frame Detected').count()
+        self.assertEqual(count, 24)
+        
 
 
 if __name__ == '__main__':

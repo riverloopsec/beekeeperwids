@@ -123,7 +123,7 @@ class DroneDaemon:
                 self.logutil.log('Initialized Plugin')
             except Exception:
                 self.handleException()
-
+        time.sleep(1)
         # task plugin
         try:
             self.logutil.log('Tasking Plugin: ({0}, ch.{1}) with Task {2}'.format(plugin, channel, uuid))

@@ -20,8 +20,8 @@ class SnifferProcess(Process):
         self.pipe = pipe
         self.kb   = kb
         self.stopevent = stopevent
-        self.desc = '{0}.Sniffer'.format(parent)
-        self.logutil = KBLogUtil(drone, 'SnifferProcess', None)
+        self.name = '{0}.Sniffer'.format(parent)
+        self.logutil = KBLogUtil(drone, self.name)
 
     def run(self):
         '''
@@ -35,8 +35,11 @@ class SnifferProcess(Process):
             recvpkt = self.kb.pnext() #nonbocking
             # Check for empty packet (timeout) and valid FCS
             if recvpkt is not None:# and recvpkt[1]:
-                self.logutil.log("Received Frame")
+                self.logutil.debug("Received Frame")
                 self.pipe.send(recvpkt)
         self.logutil.log('Turning off interface: {0}'.format(self.kb.device))
         self.kb.sniffer_off()
         self.logutil.log('Terminating Execution')
+
+
+

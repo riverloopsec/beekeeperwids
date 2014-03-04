@@ -20,6 +20,7 @@ class DisassociationStormMonitor(AnalyticModule):
         AnalyticModule.__init__(self, settings, config, "DisassociationStormMonitor")
 
     def run(self):
+        time.sleep(1)
         self.logutil.log('Starting Execution')
         self.active = True
         channel = self.settings.get('channel')
@@ -29,7 +30,6 @@ class DisassociationStormMonitor(AnalyticModule):
 
         # Task drones to capture beacon request packets.
         # This will collect the IEEE 802.15.4 versions:
-        '''
         parameters = {'callback': self.config.upload_url,
                       'filter'  : {
                          'fcf': (0x0300, 0x0300),
@@ -50,7 +50,6 @@ class DisassociationStormMonitor(AnalyticModule):
                          'byteoffset': (9, 0x03, 0x01) #offset within the ZB pkt for Frame Type: Command (0x0001)
                          #'byteoffset': (0x21, 0xff, 0x04) #offset within the ZB pkt for Command Identifier: Leave (0x04)
                      }
-        '''
         #TODO channel needs to be set dynamically
         uuid_zbnwk = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin',
                                     task_channel=channel, task_parameters=parameters)
@@ -61,7 +60,8 @@ class DisassociationStormMonitor(AnalyticModule):
 
         # Get packets from database and run statistics
         while self.active:
-            pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
+            #pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
+            pkts = self.getPackets(uuidFilterList=[uuid_zbnwk], new=True)
             self.logutil.debug("Found {0} packets since last check.".format(len(pkts)))
             for pkt in pkts:
                 self.logutil.debug("Got pkt from DB: {0}".format(pkt))
@@ -91,7 +91,7 @@ class DisassociationStormMonitor(AnalyticModule):
                 elif ZigbeeNWKCommandPayload in spkt:
                     event_name = 'ZigbeeNWKCommandPayload Frame Detected'
                     self.logutil.log('EVENT: {0}: {1}'.format(event_name, spkt.summary()))
-                    self.generateEvent(name=event_name, details={}, related_packets=[pkt.id])
+                    self.registerEvent(name=event_name, details={}, related_packets=[pkt.id])
                     if spkt.cmd_identifier != "leave":
                         continue    # It isn't the disassoc we're looking for
                     elif spkt.request == 0:  # Device leaving
