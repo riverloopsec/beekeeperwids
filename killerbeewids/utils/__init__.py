@@ -18,84 +18,6 @@ def microToDate(microseconds):
     date = datetime.datetime(1970,1,1) + datetime.timedelta(microseconds=microseconds)
     return date.strftime('%Y-%m-%d %H:%M:%S.%f')
 
-def getDronePluginLibrary():
-    library = {}
-    filepath = os.path.join(KB_CONFIG_PATH, 'pluginlibrary.xml')
-    root = ET.parse(filepath).getroot()
-    for plugin in root.findall('plugin'):
-        name = plugin.get('name')
-        modulepath = plugin.get('modulepath')
-        library[name] = modulepath
-    return library
-
-
-def loadModuleClass(name):
-    # step 1 - load library of available modules
-    library = {}
-    filepath = os.path.join(KB_CONFIG_PATH, 'modules.xml')
-    root = ET.parse(filepath).getroot()
-    for plugin in root.findall('module'):
-        name = plugin.get('name')
-        path = plugin.get('path')
-        library[name] = path
-
-    #print("///////// loadModuleClass /////////")
-    #print('library: {0}'.format(library))
-    #print('name: {0}'.format(name))
-    #print('/////////////////////////////////////')
-
-    # step 2 - check if requested module is in library, if not return None
-    if not name in library.keys():
-        return None
-
-    # step 3 - load library class
-    path = library[name]
-    try:
-        p = getattr(__import__(str(path), fromlist=[str(name)]), str(name))
-    except(ImportError, AttributeError, ValueError) as e:
-        print(e)
-        p = None
-    return p
-
-def checkDronePlugin(name):
-    '''
-    checks if the plugin exists
-    '''
-    # step 1 - check if the plugin is listed in the plugin list
-    library = getDronePluginLibrary()
-    if name in library.keys():
-        module = library[name]
-    elif name in library.values():
-        module = name
-    else:
-        module = name
-
-    # check if plugin can be loaded
-    plugin = getPlugin(module)
-    if not plugin == None:
-        return module
-    else:
-        return None
-
-
-def getPlugin(name):
-
-    library = getDronePluginLibrary()
-    if name in library.keys():
-        path = library[name]
-    elif name in library.values():
-        path = name
-    else:
-        path = name
-
-    module = '.'.join(path.split('.')[:-1])
-    plugin = path.split('.')[-1]
-    try:
-        p = getattr(__import__(str(module), fromlist=[str(plugin)]), str(plugin))
-    except(ImportError, AttributeError, ValueError) as e:
-        print(e)
-        p = None
-    return p
 
 class KBInterface(KillerBee):
     def __init__(self, device, datasource=None, gps=None):
@@ -112,49 +34,42 @@ class KBInterface(KillerBee):
 
 
 class KBLogUtil:
-    def __init__(self, name, process_name=None, process_pid=None, space=24):
-        self.name = name
-        self.path = os.getenv('KBWIDS_LOG_PATH', tempfile.gettempdir())
+    def __init__(self, app_name, process_name, a=None, b=None, c=None): # i <3 hakiness
+        self.app_name = app_name
         self.process_name = process_name
-        self.process_pid = process_pid
-        self.space = space
-        self.logfilename = '{0}/{1}.log'.format(self.path, self.name)
-        self.runfilename = '{0}/{1}.run'.format(self.path, self.name)
-        self.pidfilename = '{0}/{1}.pid'.format(self.path, self.name)
+        self.path = os.getenv('KBWIDS_LOG_PATH', tempfile.gettempdir())
+        self.logfilename = '{0}/{1}.log'.format(self.path, self.app_name)
+        self.pidfilename = '{0}/{1}.pid'.format(self.path, self.app_name)
         self.logfile = open(self.logfilename, 'a')
-    def setRun(self):
-        open(self.runfilename, 'w').write('1')
-    def unsetRun(self):
-        open(self.runfilename, 'w').write('0')
-    def getRunState(self):
-        state = open(self.runfilename, 'r').read()
-        if state == '1': return True
-        else: return False
-    def checkRunFile(self):
-        if os.path.isfile(self.runfilename): return True
+
     def writePID(self):
         open(self.pidfilename, 'w').write(str(os.getpid()))
+
     def deletePID(self):
         os.remove(self.pidfilename)
+
     def getPID(self):
         return open(self.pidfilename, 'r').read()
-    def logline(self):
-        self.logfile.write('-'*130 + '\n')
+
+    def startlog(self):
+        self.logfile.write('='*70 + 'START' + '='*70 + '\n')
+
     def endlog(self):
-        self.logfile.write('====ENDLOG====\n')
-        self.logfile.close()
+        self.logfile.write('='*71 + 'END' + '='*71 + '\n')
+
     def trace(self, etb):
         self.logfile.write('\n{0}\n'.format(etb))
         self.logfile.flush()
-    def log(self, msg, category='INFO'):
-        date = time.strftime('%Y-%m-%d %H:%M:%S')
-        s = str(date).ljust(21) + str(category).ljust(6) + str(self.process_pid).ljust(7) + str(self.process_name).ljust(self.space) + ' : ' + str(msg)
-        self.logfile.write(s + '\n')
+
+    def log(self, msg):
+        self.logfile.write(str(time.strftime('%Y-%m-%d %H:%M:%S')).ljust(21) + str(self.process_name).ljust(26) + ' : ' + str(msg) + '\n')
         self.logfile.flush()
+
+    def debug(self, msg):
+        self.log('DEBUG: {0}'.format(msg))
+        
     def cleanup(self):
-        os.remove(self.runfilename)
+        self.endlog()
+        self.logfile.close()
         os.remove(self.pidfilename)
 
-if __name__ == '__main__':
-    pass
-    #print(checkDronePlugin('CapturePlugin'))

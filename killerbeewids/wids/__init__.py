@@ -27,7 +27,7 @@ class WIDSDaemon:
         signal.signal(signal.SIGINT, self.SIGINT)
         self.config = WIDSConfig(parameters, config)
         self.config.daemon_pid = os.getpid()
-        self.logutil = KBLogUtil(self.config.name, 'Daemon', os.getpid())
+        self.logutil = KBLogUtil(self.config.name, 'Daemon')
         self.database = DatabaseHandler(self.config.name)
         self.engine = None
         self.module_store = {}
@@ -45,9 +45,7 @@ class WIDSDaemon:
             self.stopDaemon()
 
     def startDaemon(self):
-        self.logutil.logline()
         self.logutil.log('Starting Daemon')
-        self.logutil.writePID()
         self.loadDrones()
         self.loadRules()
         self.loadModules()
@@ -61,18 +59,17 @@ class WIDSDaemon:
         self.unloadRules()
         self.unloadDrones()
         self.logutil.log('Successfull Shutdown')
-        self.logutil.endlog()
-        self.logutil.deletePID()
+        self.logutil.cleanup()
         sys.exit()
 
     def startEngine(self):
         self.logutil.log("Starting Process: WIDSEngine")
-        self.engine = WIDSRuleEngine(rules=None)
+        self.engine = WIDSRuleEngine(self.config)
         self.engine.start()
         self.config.engine_pid = self.engine.pid
 
     def stopEngine(self):
-        self.engine.terminate()
+        self.engine.shutdown()
         self.engine.join()
         self.logutil.log('\tTerminated Engine Process')
 

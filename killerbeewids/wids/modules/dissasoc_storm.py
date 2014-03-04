@@ -52,9 +52,9 @@ class DisassociationStormMonitor(AnalyticModule):
         # Get packets from database and run statistics
         while self.active:
             pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
-            self.logutil.log("debug: Found {0} packets since last check.".format(len(pkts)))
+            self.logutil.debug("Found {0} packets since last check.".format(len(pkts)))
             for pkt in pkts:
-                self.logutil.log("debug: Got pkt from DB: {0}".format(pkt))
+                self.logutil.debug("Got pkt from DB: {0}".format(pkt))
                 spkt = Dot15d4FCS(pkt.pbytes)
 
                 msg         = None
@@ -64,7 +64,8 @@ class DisassociationStormMonitor(AnalyticModule):
 
                 # It may be an 802.15.4 disassociation, which our uuid_dot15d4 should collect
                 if Dot15d4CmdDisassociation in spkt:
-                    self.logutil.log("alert: have 802.15.4 Disassociation Frame: {0}.".format(spkt.summary()))
+                    event_name = 'Dissassociation Frame Detected'
+                    self.logutil.log("EVENT: {0}: {1}.".format(event_name, spkt.summary()))
                     if spkt.disassociation_reason == 0x02: # The device wishes to leave the PAN
                         msg         = "802.15.4 Dissassociation Frame (Reason: Device Wishes to Leave)"
                         device      = spkt.src_addr
@@ -75,12 +76,15 @@ class DisassociationStormMonitor(AnalyticModule):
                         coordinator = spkt.src_addr
                     else:
                         msg         = "802.15.4 Dissassociation Frame (Reason has an unexpected value)"
+                    self.registerEvent(name=event_name, details={'msg':msg}, related_packets=[pkt.id])
                 # Or it's a ZigBee frame, which our uuid_zbnwk task should request
                 elif ZigbeeNWKCommandPayload in spkt:
-                    self.logutil.log("alert: have ZigbeeNWKCommandPayload Frame: {0}.".format(spkt.summary()))
+                    event_name = 'ZigbeeNWKCommandPayload Frame Detected'
+                    self.logutil.log('EVENT: {0}: {1}'.format(event_name, spkt.summary()))
+                    self.generateEvent(name=event_name, details={}, related_packets=[pkt.id])
                     if spkt.cmd_identifier != "leave":
                         continue    # It isn't the disassoc we're looking for
-                    elif spkt.request = 0:  # Device leaving
+                    elif spkt.request == 0:  # Device leaving
                         msg         = "ZigBee Dissassociation Command (Reason: Device Wishes to Leave)"
                         device      = spkt.ext_src  #TODO include spkt.src_addr which is the short address
                         coordinator = spkt.ext_dst
@@ -88,19 +92,19 @@ class DisassociationStormMonitor(AnalyticModule):
                             msg    += " (Unexpected mismatch of source short addresses)"
                         if spkt.dest_addr != 0x0 or spkt.destination != 0x0:
                             msg    += " (Unexpected non-0x0000 value for destination, expect it to target the coordinator)"
-                    elif spkt.request = 1:  # Coordinator booting device
+                    elif spkt.request == 1:  # Coordinator booting device
                         msg         = "ZigBee Dissassociation Command (Reason: Coordinator Wishes Device to Leave)"
                         device      = spkt.ext_dst
                         coordinator = spkt.ext_src  #TODO include spkt.src_addr which is the short address
                         if spkt.dest_addr != spkt.destination:
                             msg    += " (Unexpected mismatch of source short addresses)"
                         if spkt.src_addr != 0x0 or spkt.source != 0x0:
-                        msg    += " (Unexpected non-0x0000 value for source, expect it to come from the coordinator)"
+                            msg    += " (Unexpected non-0x0000 value for source, expect it to come from the coordinator)"
                     else:
                         msg         = "802.15.4 Dissassociation Frame (Reason has an unexpected value)"
                 # Or we don't want this packet, which shouldn't happen based on our front-end selection
                 else:
-                    self.logutil.log("debug: query got us a frame we didn't want: {0}.".format(spkt.summary()))
+                    self.logutil.debug("query got us a frame we didn't want: {0}.".format(spkt.summary()))
                     continue
                 
                 # Now publish the event

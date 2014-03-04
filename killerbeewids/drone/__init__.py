@@ -54,18 +54,12 @@ class DroneDaemon:
             print("Error Starting Drone:")
             print("Socket TCP {0} already bound".format(self.port))
             sys.exit()
-        if self.logutil.checkRunFile():
-            pid = self.runfile.pid()
-            print("Error Starting Drone:")
-            print("Run file for drone already exists: {0}".format(self.runfile.runfile))
-            print("Please ensure process: {0} is not running, and remove files manually".format(pid))
-            sys.exit()
 
     def startDaemon(self):
         self.runChecks()
-        self.logutil.logline()
-        self.logutil.log("Starting DroneDaemon")
         self.logutil.writePID()
+        self.logutil.startlog()
+        self.logutil.log("Starting DroneDaemon")
         self.enumerateInterfaces()
         self.startRestServer()
 
@@ -73,8 +67,7 @@ class DroneDaemon:
         self.logutil.log('Initiating shutdown')
         self.stopRunningPlugins()
         self.logutil.log('Completed shutdown')
-        self.logutil.endlog()
-        self.logutil.deletePID()
+        self.logutil.cleanup()
         # TODO: verify that all subprocess have been terminated
         sys.exit()
 
@@ -82,7 +75,7 @@ class DroneDaemon:
         pass
 
     def startRestServer(self):
-        self.logutil.log('Starting REST Server: http://*:{0}'.format(self.port))
+        self.logutil.log('Starting REST Server on port {0}'.format(self.port))
         app = flask.Flask(__name__)
         app.add_url_rule('/shutdown', None, self.shutdownDaemon, methods=['POST'])
         app.add_url_rule('/task', None, self.processTaskRequest, methods=['POST'])
@@ -109,25 +102,25 @@ class DroneDaemon:
     def taskPlugin(self, plugin, channel, uuid, parameters):
         pluginObject = self.plugins.get((plugin,channel), None)
         if pluginObject == None:
-            self.logutil.log('\tNo Instance of ({0},{1}) Found - Starting New one'.format(plugin, channel))
+            self.logutil.log('No Instance of ({0},{1}) Found - Starting New one'.format(plugin, channel))
 
             try:
                 # get interface
                 interface = self.getAvailableInterface()
                 if interface == None:
-                    self.logutil.log('\tFailed: No Avilable Interfaces')
+                    self.logutil.log('Failed: No Avilable Interfaces')
                     return {'success':False}
-                self.logutil.log('\tAcquired Interface: {0}'.format(interface.device))
+                self.logutil.log('Acquired Interface: {0}'.format(interface.device))
                 # load class
                 pluginClass = self.loadPluginClass(plugin)
                 if pluginClass == None:
-                    self.logutil.log('\tFailed: Plugin Module: {0} does not exist'.format(plugin))
+                    self.logutil.log('Failed: Plugin Module: {0} does not exist'.format(plugin))
                     return {'success':False}
-                self.logutil.log('\tLoaded Plugin Class: {0}'.format(pluginClass))
+                self.logutil.log('Loaded Plugin Class: {0}'.format(pluginClass))
                 # start plugin
                 pluginObject = pluginClass([interface], channel, self.name)
                 self.plugins[(plugin,channel)] = pluginObject
-                self.logutil.log('\tInitialized Plugin')
+                self.logutil.log('Initialized Plugin')
             except Exception:
                 self.handleException()
 
@@ -181,7 +174,7 @@ class DroneDaemon:
         for interface in kbutils.devlist():
             device = interface[0]
             description = interface[1]
-            self.logutil.log("\tAdded new interface: {0}".format(device))
+            self.logutil.log("Added new interface: {0}".format(device))
             self.interfaces[device] = KBInterface(device)
 
     def status(self):
