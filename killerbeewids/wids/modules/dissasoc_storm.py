@@ -29,6 +29,7 @@ class DisassociationStormMonitor(AnalyticModule):
 
         # Task drones to capture beacon request packets.
         # This will collect the IEEE 802.15.4 versions:
+        '''
         parameters = {'callback': self.config.upload_url,
                       'filter'  : {
                          'fcf': (0x0300, 0x0300),
@@ -37,6 +38,10 @@ class DisassociationStormMonitor(AnalyticModule):
         #TODO channel needs to be set dynamically
         uuid_dot15d4 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
                                     task_channel=channel, task_parameters=parameters)
+        if not uuid_dot15d4 == None:
+            self.logutil.log('Successfully tasked drone with task: {0}'.format(uuid_dot15d4))
+        else:
+            self.logutil.log('ERROR: Failed to Task Drone')
 
         # This will collect the ZigBee version:
         parameters['filter'] = {
@@ -45,9 +50,14 @@ class DisassociationStormMonitor(AnalyticModule):
                          'byteoffset': (9, 0x03, 0x01) #offset within the ZB pkt for Frame Type: Command (0x0001)
                          #'byteoffset': (0x21, 0xff, 0x04) #offset within the ZB pkt for Command Identifier: Leave (0x04)
                      }
+        '''
         #TODO channel needs to be set dynamically
         uuid_zbnwk = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin',
                                     task_channel=channel, task_parameters=parameters)
+        if not uuid_zbnwk == None:
+            self.logutil.log('Successfully tasked drone with task: {0}'.format(uuid_zbnwk))
+        else:
+            self.logutil.log('ERROR: Failed to Task Drone')
 
         # Get packets from database and run statistics
         while self.active:
