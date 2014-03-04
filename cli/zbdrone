@@ -9,7 +9,7 @@ import flask
 import traceback
 from time import sleep
 from killerbeewids.drone import DroneClient, DroneDaemon
-from killerbeewids.utils import KBLogUtil, checkDronePlugin
+from killerbeewids.utils import KBLogUtil
 
 def debug(args):
     os.system('gnome-terminal --geometry 228x8-1+29 --command="/home/dev/riverloop/projects/killerbeewids/cli/zbdrone -watch"')
@@ -39,7 +39,7 @@ def stop(args):
     '''
     sends an interrupt signal (SIGINT) to the drone process
     '''
-    pid = KBLogUtil(args.name).getPID()
+    pid = KBLogUtil(args.name, None).getPID()
     os.system('kill -s 2 {0}'.format(pid))
 
 def restart(args):

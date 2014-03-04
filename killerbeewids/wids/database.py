@@ -13,6 +13,18 @@ from killerbeewids.utils import KB_CONFIG_PATH
 
 Base = declarative_base()
 
+class Alert(Base):
+    __tablename__ = 'alert'
+    id = Column(Integer, primary_key=True)
+    datetime = Column(Integer())
+    module   = Column(String(100))
+    name     = Column(String(100))
+
+    def __init__(self, event_data):
+        self.datetime = int(event_data.get('datetime'))
+        self.module   = str(event_data.get('module'))
+        self.name     = str(event_data.get('name'))
+
 class Event(Base):
     __tablename__ = 'event'
     id = Column(Integer, primary_key=True)

@@ -5,6 +5,11 @@ Unit tests for WIDS database backend using snapshot of database ('test.db')
 jvazquez 2013 riverloopsecurity.com
 '''
 
+import unittest
+
+from killerbeewids.wids.database import DatabaseHandler
+
+
 t1_uuid  = 'f88d3cac-7136-4a31-9153-a4b1605e1b90'
 t1_count = 219
 t2_uuid  = '4980a309-7307-409c-9ebd-f39447fdb336'
@@ -20,22 +25,18 @@ rssi_gt_78 = 164
 rssi_eq_78 = 178
 rssi_lt_78 = 45
 
-import unittest
-
-from killerbeewids.wids.database import DatabaseHandler
-
-class TestDatabaseHandler(unittest.TestCase):
+class TestDatabaseHandlerPackets(unittest.TestCase):
     def setUp(self):
-        self.db = DatabaseHandler('test', path='./')
+        self.db = DatabaseHandler('packet', path='./')
 
     def cleanup(self):
         self.db.close()
 
-    def test_get_all_packets(self):
+    def test_packet__get_all(self):
         count = self.db.getPackets(count=True)
         self.assertEqual(count, total_count)
 
-    def test_get_new_packets(self):
+    def test_packet_get_new_(self):
         # query packets WITHOUT new flag
         packets_1 = self.db.getPackets(maxcount=100)
         index_1a = packets_1[0].id
@@ -59,52 +60,57 @@ class TestDatabaseHandler(unittest.TestCase):
         self.assertEqual(index_2a, 101)
         self.assertEqual(index_2b, 200)
 
-    def test_get_maxcount_packets(self):
+    def test_packet_get_maxcount_(self):
         count = self.db.getPackets(maxcount=100, count=True)
         self.assertEqual(count, 100)
 
-    def test_get_t1_count(self):
+    def test_packet_get_t1_count(self):
         count = self.db.getPackets(uuidFilterList=[t1_uuid], count=True)    
         self.assertEqual(count, t1_count)
 
-    def test_get_t2_packets(self):
+    def test_packet_get_t2_count(self):
         count = self.db.getPackets(uuidFilterList=[t2_uuid], count=True)    
         self.assertEqual(count, t2_count)
 
-    def test_filter_rssi_gt(self):
+    def test_packet_filter_rssi_gt(self):
         count = self.db.getPackets(valueFilterList=[('rssi','>',78)], count=True)
         self.assertEqual(count, rssi_gt_78)
 
-    def test_filter_rssi_eq(self):
+    def test_packet_filter_rssi_eq(self):
         count = self.db.getPackets(valueFilterList=[('rssi','==',78)], count=True)
         self.assertEqual(count, rssi_eq_78)
 
-    def test_filter_rssi_lt(self):
+    def test_packet_filter_rssi_lt(self):
         count = self.db.getPackets(valueFilterList=[('rssi','<',78)], count=True)
         self.assertEqual(count, rssi_lt_78)
 
-    def test_filter_datetime(self):
+    def test_packet_filter_datetime(self):
         pass
 
-    def test_filter_bytes(self):
-        pass
-
-    def test_mix_filters(self):
+    def test_packet_mix_filters(self):
         count = self.db.getPackets(valueFilterList=[('rssi','>',78)], uuidFilterList=[t1_uuid], count=True)
         self.assertEqual(count, 76)
+        
+
+class TestDatabaseHandlerEvents(unittest.TestCase):
+    def setUp(self):
+        self.db = DatabaseHandler('event2', path='./')
+        self.db.storeEvent({'module':'UnitTestModule', 'datetime':0, 'name':'TestEvent', 'details':{}, 'uuids':['1234-1234-1234-1234'], 'packets':[0,1,2]})
+
+    def cleanup(self):
+        self.db.close()
+
+    def test_event_get_all(self):
+        events = self.db.getEvents()
+
+        for event in events:
+            print(event.id, event.datetime, event.module, event.name, event.details, event.uuids, event.packets)
 
 
 if __name__ == '__main__':
     unittest.main()
 
 
-
-
-#for packet in db.session.query(Packet).filter('uuid == "03ff76a6-51dc-4bea-8eaf-1d82bbdf2a5b"').all():
-#    print(packet.uuid)
-
-#for packet in db.getPackets(filterList=[('rssi','>','78')], uuidList=[u1]):
-#    print(packet.uuid, packet.rssi)
 
 
 

@@ -45,6 +45,8 @@ class WIDSDaemon:
             self.stopDaemon()
 
     def startDaemon(self):
+        self.logutil.writePID()
+        self.logutil.startlog()
         self.logutil.log('Starting Daemon')
         self.loadDrones()
         self.loadRules()
@@ -71,7 +73,7 @@ class WIDSDaemon:
     def stopEngine(self):
         self.engine.shutdown()
         self.engine.join()
-        self.logutil.log('\tTerminated Engine Process')
+        self.logutil.log('Terminated Engine Process')
 
     def loadDrones(self):
         count = len(self.config.drones)
@@ -92,14 +94,14 @@ class WIDSDaemon:
                 droneObject = Drone(droneIndex, drone_address, drone_port)
                 self.drone_store[droneIndex] = droneObject
                 self.drone_counter += 1
-                self.logutil.log('\tLoading Drone {0} (URL: {1})'.format(droneIndex, droneObject.url))
+                self.logutil.log('Loading Drone {0} (URL: {1})'.format(droneIndex, droneObject.url))
                 return self.resultMessage(True, None)
         except:
             self.handleException()
 
     def unloadDrones(self):
         self.logutil.log('Unloading Drones')
-        self.logutil.log('\tFound {0} Active Drones'.format(len(self.drone_store)))
+        self.logutil.log('Found {0} Active Drones'.format(len(self.drone_store)))
         for i in range(len(self.drone_store)):
             self.unloadDrone(i)
 
@@ -112,7 +114,7 @@ class WIDSDaemon:
                 return self.resultMessage(False, error)
             else:
                 droneObject.release()
-                self.logutil.log('\tReleasing Drone {0} (URL: {1})'.format(droneIndexInt, droneObject.url))
+                self.logutil.log('Releasing Drone {0} (URL: {1})'.format(droneIndexInt, droneObject.url))
                 del(self.drone_store[droneIndexInt])
                 del(droneObject)
                 return self.resultMessage(True, None)
@@ -159,7 +161,7 @@ class WIDSDaemon:
                 error = 'Error: Missing Parameters: "name"'
                 self.logutil.log(error)
                 return self.resultMessage(False, error)
-                self.logutil.log('\tFailed to Load Module - Missing Parameter: "name" in {0}\n'.format(moduleConfigDict))
+                self.logutil.log('Failed to Load Module - Missing Parameter: "name" in {0}\n'.format(moduleConfigDict))
             elif moduleSettings == None:
                 error = 'Error: Missing Parameters: "settings"'
                 self.logutil.log(error)
@@ -172,14 +174,14 @@ class WIDSDaemon:
                 moduleObject = Module(moduleIndex, moduleName, moduleSettings, moduleProcess)
                 self.module_store[moduleIndex] = moduleObject
                 self.module_counter += 1
-                self.logutil.log('\tLoading Module {0} ({1})'.format(moduleIndex, moduleObject.name))
+                self.logutil.log('Loading Module {0} ({1})'.format(moduleIndex, moduleObject.name))
                 return self.resultMessage(True, None)
         except:
             self.handleException()
 
     def unloadModules(self):
         self.logutil.log('Unloading Modules')
-        self.logutil.log('\tFound {0} Active Modules'.format(len(self.module_store)))
+        self.logutil.log('Found {0} Active Modules'.format(len(self.module_store)))
         for i in range(len(self.module_store)):
             self.unloadModule(i)
 
@@ -191,7 +193,7 @@ class WIDSDaemon:
                 self.logutil.log(error)
                 return self.resultMessage(False, error)
             else:
-                self.logutil.log('\tUnloading Module {0} ({1} - {2})'.format(moduleIndexInt, moduleObject.name, moduleObject.process.pid))
+                self.logutil.log('Unloading Module {0} ({1} - {2})'.format(moduleIndexInt, moduleObject.name, moduleObject.process.pid))
                 moduleObject.process.shutdown()
                 moduleObject.process.join()
                 del(self.module_store[moduleIndexInt])
