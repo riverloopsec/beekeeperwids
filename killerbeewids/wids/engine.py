@@ -15,6 +15,7 @@ class RuleDissasocAttack:
         self.execute_actions  = [('GenerateAlert', {'name':'Dissasociation Attack Alert'})]
         self.event_index = 0
 
+# TODO - load/unload rules dynamically into engine
 
 class RuleEngine(Process):
 
@@ -38,22 +39,36 @@ class RuleEngine(Process):
         self.start_time = dateToMicro(datetime.utcnow())
 
         while self.active:
-            time.sleep(5)
-            self.logutil.debug('Evaluating Rules')
+    
+            # check server for new rules: 'GET /rules/updatecheck', if so load new rules
+            self.logutil.debug('Checking for new rules')
+            '''
+            if self.wids.checkNewRules():
+                new_rules = self.wids.getNewRules()
+            '''
 
+            # evaluate each rule serially
+            self.logutil.debug('Evaluating rules')
             for RuleObject in self.rules:
                 self.evaluateRule(RuleObject)
+
+            time.sleep(3)
 
         self.logutil.log('Terminating Execution')
 
     
+
+    # TODO - replace the internal database with a REST call to query database for events
     def evaluateRule(self, RuleObject):
         self.logutil.dev('Evaluating Rule: {0} (EventIndex: {1})'.format(RuleObject.name, RuleObject.event_index))
         for condition in RuleObject.event_conditions:
             module = condition[0]
             event  = condition[1]
             count  = condition[2]
+
+            # TODO - replace this direct database query with REST call ????
             query = self.database.session.query(Event).filter(Event.module == module).filter(Event.name == event).filter(Event.datetime > self.start_time).filter(Event.id > RuleObject.event_index)
+
             results_count = query.limit(count).count()
             self.logutil.dev('Event: {0} - Found: {1} (Events Needed: {2})'.format(event, results_count, count))
             if not results_count >= count:
@@ -77,7 +92,6 @@ class RuleEngine(Process):
     def action_GenerateAlert(self, rule_name, action_parameters):
         self.logutil.log('Executing GenerateAlert Action for Rule {0}'.format(rule_name))
         self.wids.generateAlert(rule_name)
-
 
     def shutdown(self):
         self.active = False

@@ -1,5 +1,0 @@
-<pluginlibrary>
-
-<plugin name='CapturePlugin' path='killerbeewids.drone.plugins.capture'/>
-
-</pluginlibrary>

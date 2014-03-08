@@ -10,6 +10,7 @@ import urllib2
 import json
 import os
 import base64
+import traceback
 from struct import unpack
 
 from killerbeewids.utils import KBLogUtil, dateToMicro
@@ -97,6 +98,5 @@ class FilterProcess(Process):
                     self.logutil.debug('Matched Packet against task: {0}'.format(uuid))
                     self.do_callback(uuid, cb, pkt)
             except Exception as e:
-                print(e)
+                traceback.print_exc()
                 print "Sniffer pipe on the filter end received an IOError, OK at shutdown:", e
-                pass #Should occur if the interupt fires and the pipe is killed.

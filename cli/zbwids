@@ -151,7 +151,7 @@ def displayStatus(data):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-name', action='store', default='kbwids0')
+    parser.add_argument('-name', action='store', default='wids0')
     parser.add_argument('-start', action='store_true')
     parser.add_argument('-run', action='store_true')
     parser.add_argument('-stop', action='store_true')
@@ -178,6 +178,8 @@ if __name__ == '__main__':
     parser.add_argument('-alerts', action='store_true')
     parser.add_argument('-monitoralerts', action='store_true')
     parser.add_argument('-v', action='store_true')
+    parser.add_argument('-vv', action='store_true')
+    parser.add_argument('-vvv', action='store_true')
     args = parser.parse_args()
 
     if args.debug:

@@ -50,11 +50,11 @@ class WIDSDaemon:
         self.logutil.writePID()
         self.logutil.startlog()
         self.logutil.log('Starting Daemon')
-        self.startEngine()
         self.loadRules()
         self.loadDrones()
         self.loadModules()
-        self.runServer()
+        self.startEngine()
+        self.startServer()
 
     def stopDaemon(self):
         self.logutil.log('Initiating Shutdown')
@@ -217,7 +217,7 @@ class WIDSDaemon:
     def loadRule(self):
         pass
 
-    def runServer(self):
+    def startServer(self):
         self.logutil.log('Starting Server on port {0}'.format(self.config.server_port))
         app = flask.Flask(__name__)
         app.add_url_rule('/status', None, self.processStatusRequest, methods=['POST'])
@@ -227,8 +227,9 @@ class WIDSDaemon:
         app.add_url_rule('/drone/detask', None, self.processDroneDetask, methods=['POST'])
         app.add_url_rule('/drone/add', None, self.processDroneAdd, methods=['POST'])
         app.add_url_rule('/drone/delete', None, self.processDroneDelete, methods=['POST'])
-        app.add_url_rule('/rule/add', None, self.processRuleAdd, methods=['POST'])
-        app.add_url_rule('/rule/delete', None, self.processRuleDelete, methods=['POST'])
+        app.add_url_rule('/rules/add', None, self.processRuleAdd, methods=['POST'])
+        app.add_url_rule('/rules/delete', None, self.processRuleDelete, methods=['POST'])
+        app.add_url_rule('/rules/checkupdate', None, self.processRuleCheckUpdateRequest, methods=['POST'])
         app.add_url_rule('/alert', None, self.processAlertRequest, methods=['POST'])
         app.add_url_rule('/alert/generate', None, self.processAlertGenerateRequest, methods=['POST'])
         app.add_url_rule('/module/load', None, self.processModuleLoad, methods=['POST'])
@@ -330,6 +331,16 @@ class WIDSDaemon:
     def processRuleDelete(self):
         pass
         # ruleID
+
+    def processRuleCheckUpdateRequest(self):
+        self.logutil.debug('Processing Alert Request')
+        try:
+            if self.new_rules:
+                return self.resultMessage(True, {'newrules':True})
+            else:
+                return self.resultMessage(True, {'newrules':False})
+        except:
+            return self.handleException()
 
     def processStatusRequest(self):
         self.logutil.log('Processing Status Request')

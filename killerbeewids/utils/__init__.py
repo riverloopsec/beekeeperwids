@@ -34,7 +34,7 @@ class KBInterface(KillerBee):
 
 
 class KBLogUtil:
-    def __init__(self, app_name, process_name, a=None, b=None, c=None): # i <3 hakiness
+    def __init__(self, app_name, process_name=None, a=None, b=None, c=None): # i <3 hakiness
         self.app_name = app_name
         self.process_name = process_name
         self.path = os.getenv('KBWIDS_LOG_PATH', tempfile.gettempdir())
@@ -57,19 +57,26 @@ class KBLogUtil:
     def endlog(self):
         self.logfile.write('='*71 + 'END' + '='*71 + '\n')
 
+    def record(self, category, msg):
+        self.logfile.write(str(time.strftime('%Y-%m-%d %H:%M:%S')).ljust(21) + str(self.process_name).ljust(26) + ' : ' + str(category).ljust(8) + str(msg) + '\n')
+        self.logfile.flush()
+
     def trace(self, etb):
+        self.error('Encountered Unknown Exception, see traceback:')
         self.logfile.write('\n{0}\n'.format(etb))
         self.logfile.flush()
 
+    def error(self, msg):
+        self.record('ERROR', msg)
+
     def log(self, msg):
-        self.logfile.write(str(time.strftime('%Y-%m-%d %H:%M:%S')).ljust(21) + str(self.process_name).ljust(26) + ' : ' + str(msg) + '\n')
-        self.logfile.flush()
+        self.record('INFO', msg)
 
     def debug(self, msg):
-        self.log('DEBUG: {0}'.format(msg))
+        self.record('DEBUG', msg)
 
     def dev(self, msg):
-        self.log('DEV-DEBUG: {0}'.format(msg))
+        self.record('DEV-DBG', msg)
         
     def cleanup(self):
         self.endlog()
