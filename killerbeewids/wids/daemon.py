@@ -258,7 +258,7 @@ class WIDSDaemon:
         app.add_url_rule('/module/unload',      None, self.processModuleUnloadREquest,      methods=['POST'])
         app.run(threaded=True, port=int(self.config.server_port))
 
-    def formatResponse(error, data):
+    def formatResponse(self, error, data):
         return json.dumps({'error':error, 'data':data})
 
     def processActiveGetRequest(self):

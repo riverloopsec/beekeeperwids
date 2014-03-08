@@ -27,7 +27,7 @@ class BaseDronePlugin(object):
 
     def info(self):
         info = {}
-        info['desc'] = self.desc
+        info['name'] = self.name
         info['pid'] = self.pid
         info['status'] = self.status
         info['active'] = self.active

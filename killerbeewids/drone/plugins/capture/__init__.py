@@ -60,7 +60,8 @@ class CapturePlugin(BaseDronePlugin):
         else:
             # We made a change to tasking, let's implement it
             self.__update_filter_tasking()
-        return res
+        #return res
+        return True
 
     def __update_filter_tasking(self):
         self.logutil.log('Sending Task Updates to FilterProcess')
