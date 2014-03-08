@@ -19,13 +19,21 @@ class DisassociationStormMonitor(AnalyticModule):
     def __init__(self, settings, config):
         AnalyticModule.__init__(self, settings, config, "DisassociationStormMonitor")
 
+    '''
+    this is going to the base class
+    '''
+    def waitForWIDS(self):
+        while not self.widsclient.isActive():
+            sleep(0.1)
+
     def run(self):
-        time.sleep(1)
+        #time.sleep(1)
         self.logutil.log('Starting Execution')
         self.active = True
         channel = self.settings.get('channel')
 
-        time.sleep(3)
+        # check that WIDS server is up before submitting a request
+        self.waitForWIDS()
         self.logutil.log('Submitting Drone Task Request')
 
         # Task drones to capture beacon request packets.

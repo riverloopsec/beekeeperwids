@@ -77,11 +77,18 @@ class DroneDaemon:
     def startRestServer(self):
         self.logutil.log('Starting REST Server on port {0}'.format(self.port))
         app = flask.Flask(__name__)
-        app.add_url_rule('/shutdown', None, self.shutdownDaemon, methods=['POST'])
-        app.add_url_rule('/task', None, self.processTaskRequest, methods=['POST'])
-        app.add_url_rule('/detask', None, self.processDetaskRequest, methods=['POST'])
-        app.add_url_rule('/status', None, self.status, methods=['POST'])
+        app.add_url_rule('/task',       None, self.processTaskRequest,          methods=['POST'])
+        app.add_url_rule('/detask',     None, self.processDetaskRequest,        methods=['POST'])
+        app.add_url_rule('/status',     None, self.processStatusGetRequest,     methods=['POST'])
         app.run(port=self.port, threaded=True)
+
+    def handleUnknownException(self):
+        etb = traceback.format_exc()
+        self.logutil.trace(etb)
+        return self.formatResult(error=ec.ERROR_UnknownException, data=str(etb))
+
+    def formatResponse(self, error, data):
+        return json.dumps({'error':error, 'data':data})
 
     def processTaskRequest(self):
         try:
@@ -94,6 +101,24 @@ class DroneDaemon:
             return self.taskPlugin(plugin, channel, uuid, parameters)
         except:
             return self.handleException()
+
+    def processDetaskRequest(self):
+        data = json.loads(flask.request.data)
+        uuid = data.get('uuid')
+        return self.detaskPlugin(uuid)
+
+    def processStatusGetRequest(self):
+        self.logutil.log('Processing Status Get Request')
+        try:
+            status = {}
+            status['config'] = {}
+            status['config']['pid'] = self.pid
+            status['config']['name'] = self.name
+            status['interfaces'] = list((interface.info() for interface in self.interfaces.values()))
+            status['plugins'] = list((plugin.info() for plugin in self.plugins.values()))
+            return json.dumps(status)
+        except Exception:
+            self.handleUnknownException()
 
     def loadPluginClass(self, plugin):
         if plugin == 'CapturePlugin':
@@ -133,10 +158,6 @@ class DroneDaemon:
             self.handleException()
 
 
-    def processDetaskRequest(self):
-        data = json.loads(flask.request.data)
-        uuid = data.get('uuid')
-        return self.detaskPlugin(uuid)
 
     def detaskPlugin(self, uuid):
         self.logutil.log('Processing Detask Request for {0}'.format(uuid))
@@ -178,13 +199,6 @@ class DroneDaemon:
             self.interfaces[device] = KBInterface(device)
 
     def status(self):
-        status = {}
-        status['config'] = {}
-        status['config']['pid'] = self.pid
-        status['config']['name'] = self.name
-        status['interfaces'] = list((interface.info() for interface in self.interfaces.values()))
-        status['plugins'] = list((plugin.info() for plugin in self.plugins.values()))
-        return json.dumps(status)
 
 
 

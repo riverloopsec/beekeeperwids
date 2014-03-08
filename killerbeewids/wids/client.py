@@ -13,6 +13,19 @@ class WIDSClient:
         self.address = address
         self.port = port
 
+    def isActive(self):
+        '''
+        check if the WIDS server is up and responding to requests
+        '''
+        resource = '/active'
+        json_data = self.sendPOST(self.address, self.port, resource, {})
+        r = json.loads(json_data)
+        success = r.get('success')
+        if success:
+            return True
+        else:
+            return False
+
     def getAlerts(self):
         resource = '/alert'
         return self.sendPOST(self.address, self.port, resource, {})

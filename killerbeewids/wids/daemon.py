@@ -13,6 +13,7 @@ from collections import OrderedDict
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
 
+from killerbeewids import ErrorCodes as ec
 from killerbeewids.utils import KBLogUtil, microToDate
 from killerbeewids.drone import DroneClient
 from killerbeewids.wids import ModuleContainer, DroneContainer, RuleContainer, TaskContainer, Configuration
@@ -50,10 +51,10 @@ class WIDSDaemon:
         self.logutil.writePID()
         self.logutil.startlog()
         self.logutil.log('Starting Daemon')
+        self.startEngine()
         self.loadRules()
         self.loadDrones()
         self.loadModules()
-        self.startEngine()
         self.startServer()
 
     def stopDaemon(self):
@@ -133,10 +134,29 @@ class WIDSDaemon:
                 task_plugin = taskConfigDict.get('plugin', None)
                 task_channel = taskConfigDict.get('channel', None)
                 task_parameters = taskConfigDict.get('parameters', None)
-                if droneObject == None or task_uuid == None or task_plugin == None or task_channel == None or task_parameters == None:
-                    error = 'Error - missing parameters or drone'
-                    self.logutil.log(error)
-                    return self.resultMessage(False, error)
+                if droneObject == None:
+                    error = ec.ERROR_InvalidDroneIndex
+                    data = droneIndexInt
+                    return (error,data)
+                if task_uuid == None:
+                    error = ec.ERROR_MissingDroneTaskParameter
+                    data = 'uuid'
+                    return (error, data)
+                if task_channel == None:
+                    error = ec.ERROR_MissingDroneTaskParameter
+                    data = 'channel'
+                    return (error, data)
+                if task_plugin == None:
+                    error = ec.ERROR_MissingDroneTaskParameter
+                    data = 'plugin'
+                    return (error, data)
+                if task_parameters == None:
+                    error = ec.ERROR_MissingDroneTaskParameter
+                    data = 'parameters'
+                    return (error, data)
+                data,error = droneObject.api.task(task_plugin, task_channel, task_uuid, task_parameters) 
+
+
                 else:
                     return droneObject.client.task(task_plugin, task_channel, task_uuid, task_parameters)
         except:
@@ -220,61 +240,71 @@ class WIDSDaemon:
     def startServer(self):
         self.logutil.log('Starting Server on port {0}'.format(self.config.server_port))
         app = flask.Flask(__name__)
-        app.add_url_rule('/status', None, self.processStatusRequest, methods=['POST'])
-        app.add_url_rule('/data/upload', None, self.processDataUpload, methods=['POST'])
-        app.add_url_rule('/data/download', None, self.processDataDownload, methods=['POST'])
-        app.add_url_rule('/drone/task', None, self.processDroneTask, methods=['POST'])
-        app.add_url_rule('/drone/detask', None, self.processDroneDetask, methods=['POST'])
-        app.add_url_rule('/drone/add', None, self.processDroneAdd, methods=['POST'])
-        app.add_url_rule('/drone/delete', None, self.processDroneDelete, methods=['POST'])
-        app.add_url_rule('/rules/add', None, self.processRuleAdd, methods=['POST'])
-        app.add_url_rule('/rules/delete', None, self.processRuleDelete, methods=['POST'])
-        app.add_url_rule('/rules/checkupdate', None, self.processRuleCheckUpdateRequest, methods=['POST'])
-        app.add_url_rule('/alert', None, self.processAlertRequest, methods=['POST'])
-        app.add_url_rule('/alert/generate', None, self.processAlertGenerateRequest, methods=['POST'])
-        app.add_url_rule('/module/load', None, self.processModuleLoad, methods=['POST'])
-        app.add_url_rule('/module/unload', None, self.processModuleUnload, methods=['POST'])
+        app.add_url_rule('/active',             None, self.processActiveGetRequest,         methods=['GET'] )
+        app.add_url_rule('/status',             None, self.processStatusGetRequest,         methods=['GET'] )
+        app.add_url_rule('/data/upload',        None, self.processDataUploadRequest,        methods=['POST'])
+        app.add_url_rule('/data/download',      None, self.processDataDownloadRequest,      methods=['POST'])
+        app.add_url_rule('/drone/task',         None, self.processDroneTaskRequest,         methods=['POST'])
+        app.add_url_rule('/drone/detask',       None, self.processDroneDetaskRequest,       methods=['POST'])
+        app.add_url_rule('/drone/add',          None, self.processDroneAddRequest,          methods=['POST'])
+        app.add_url_rule('/drone/delete',       None, self.processDroneDeleteRequest,       methods=['POST'])
+        app.add_url_rule('/rules'               None, self.processRuleGetRequest,           methods=['GET'] )
+        app.add_url_rule('/rules/add',          None, self.processRuleAddRequest,           methods=['POST'])
+        app.add_url_rule('/rules/delete',       None, self.processRuleDeleteRequest,        methods=['POST'])
+        app.add_url_rule('/rules/checkupdate',  None, self.processRuleCheckUpdateRequest,   methods=['POST'])
+        app.add_url_rule('/alerts',             None, self.processAlertGetRequest,          methods=['POST'])
+        app.add_url_rule('/alerts/generate',    None, self.processAlertGenerateRequest,     methods=['POST'])
+        app.add_url_rule('/module/load',        None, self.processModuleLoadRequest,        methods=['POST'])
+        app.add_url_rule('/module/unload',      None, self.processModuleUnloadREquest,      methods=['POST'])
         app.run(threaded=True, port=int(self.config.server_port))
 
-    def resultMessage(self, status, message):
-        return json.dumps({'success':status, 'message':message})
+    def formatResponse(error, data):
+        return json.dumps({'error':error, 'data':data})
 
-    def processDataUpload(self):
-        self.logutil.debug('Processing Data Upload')
+    def processActiveGetRequest(self):
+        self.logutil.debug('Processing Active Get Request')
+        return self.formatResponse(error=None, data=True)
+
+    def processDataUploadRequest(self):
+        self.logutil.debug('Processing Data Upload Request')
         try:
             data = json.loads(flask.request.data)
             packetdata = data.get('pkt')
             self.database.storePacket(packetdata)
-            return json.dumps({'success':True})
+            return self.formatResponse(error=None, data=None)
         except Exception:
-            self.handleException()
+            return self.handleException()
 
-    def processDataDownload(self):
-        pass
+    def processDataDownloadRequest(self):
+        self.logutil.debug('Processing Data Upload Request')
+        try:
+            return self.formatResponse(error=None, data=None)
+        except Exception:
+            return self.handleException()
 
-    def processDroneTask(self):
+    def processDroneTaskRequest(self):
         self.logutil.debug('Processing Drone Task Request')
         try:
-            data = json.loads(flask.request.data)
-            return self.taskDrone(data)
-        except:
+            request_data = json.loads(flask.request.data)
+            error,data = self.taskDrone(request_data)
+            return self.formatResponse(error,data)
+        except Exception:
             return self.handleException()
 
     def processDroneDetask(self):
         self.logutil.debug('Processing Drone Detask Request')
         try:
             data = json.loads(flask.request.data)
-            return self.taskDrone(data)
-        except:
+            return self.detaskDrone(data)
+        except Exception:
             return self.handleException()
-
 
     def processDroneAdd(self):
         self.logutil.debug('Processing Drone Add Request')
         try:
             data = json.loads(flask.request.data)
             return self.loadDrone(data)
-        except:
+        except Exception:
             return self.handleException()
 
     def processDroneDelete(self):
@@ -358,7 +388,7 @@ class WIDSDaemon:
     def handleException(self):
         etb = traceback.format_exc()
         self.logutil.trace(etb)
-        return json.dumps({'success':False, 'data':str(etb)})
+        return self.formatResult(error=ec.ERROR_UNHANDLEDEXCEPTION, data=str(etb))
 
 
 class Module:
@@ -381,7 +411,7 @@ class Drone:
         self.id = None
         self.status = None
         self.heartbeat = None
-        self.client = DroneClient(self.address, self.port)
+        self.api = DroneClient(self.address, self.port)
     def release(self):
         #TODO - implement drone release
         pass

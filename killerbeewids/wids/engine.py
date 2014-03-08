@@ -7,9 +7,12 @@ from killerbeewids.wids.database import DatabaseHandler, Event
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil, dateToMicro
 
+DEV_DEBUG=True
+
 class RuleDissasocAttack:
 
     def __init__(self):
+        self.rule_id = 'RD-10384'
         self.name = 'Dissasociation Attack Alert'
         self.event_conditions = [('DisassociationStormMonitor', 'ZigbeeNWKCommandPayload Frame Detected', 1)]
         self.execute_actions  = [('GenerateAlert', {'name':'Dissasociation Attack Alert'})]
@@ -40,8 +43,11 @@ class RuleEngine(Process):
 
         while self.active:
     
+            if DEV_DEBUG:
+                self.logutil.debug('Checking for new rules')
+                time.sleep(3)
+
             # check server for new rules: 'GET /rules/updatecheck', if so load new rules
-            self.logutil.debug('Checking for new rules')
             '''
             if self.wids.checkNewRules():
                 new_rules = self.wids.getNewRules()
@@ -52,11 +58,8 @@ class RuleEngine(Process):
             for RuleObject in self.rules:
                 self.evaluateRule(RuleObject)
 
-            time.sleep(3)
-
         self.logutil.log('Terminating Execution')
 
-    
 
     # TODO - replace the internal database with a REST call to query database for events
     def evaluateRule(self, RuleObject):

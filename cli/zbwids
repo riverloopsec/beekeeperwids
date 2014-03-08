@@ -15,6 +15,13 @@ from killerbeewids.utils import KBLogUtil, terminal_ui
 def debug(args):
     pass
 
+def check(args):
+    '''
+    checks if the wids server is up
+    '''
+    json_data = WIDSClient(args.address, args.port).isActive()
+    print(json_data)
+
 def start(args):
     '''
     starts a WIDS instance in the background
@@ -180,10 +187,13 @@ if __name__ == '__main__':
     parser.add_argument('-v', action='store_true')
     parser.add_argument('-vv', action='store_true')
     parser.add_argument('-vvv', action='store_true')
+    parser.add_argument('-check', action='store_true')
     args = parser.parse_args()
 
     if args.debug:
         debug(args)
+    elif args.check:
+        check(args)
     elif args.alerts:
         alerts(args)
     elif args.monitoralerts:
