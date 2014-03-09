@@ -11,6 +11,7 @@ from time import sleep
 from killerbeewids.wids.daemon import WIDSDaemon
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil, terminal_ui
+from killerbeewids.utils.errors import ErrorCodes as ec
 
 def debug(args):
     pass
@@ -57,16 +58,24 @@ def delDrone(args):
     '''
     sends request to delete drone from WIDS config
     '''
-    json_data = WIDSClient(args.address, args.port).delDrone(args.droneindex)
-    print(json_data)
+    (error,data) = WIDSClient(args.address, args.port).delDrone(args.droneindex)
+    processResults(error,data)
+
+import ast
 
 def loadModule(args):
-    json_data = WIDSClient(args.address, args.port).loadModule(args.modulename, args.modulesettings)
-    print(json_data)
+    module_name = str(args.modulename)
+    module_settings = ast.literal_eval(args.modulesettings)
+    (error,data) = WIDSClient(args.address, args.port).loadModule(module_name, module_settings)
+    processResults(error,data)
+
+
 
 def unloadModule(args):
-    json_data = WIDSClient(args.address, args.port).unloadModule(args.moduleindex)
-    print(json_data)
+    (error,data) = WIDSClient(args.address, args.port).unloadModule(args.moduleindex)
+    processResults(error,data)
+
+
 
 def logs(args):
     '''
@@ -105,9 +114,6 @@ def monitor(args):
         sleep(args.refresh)
 
 
-#############
-# this is so damn hacky ...
-#
 def monitoralerts(args):
     while True:
         os.system('clear') 
@@ -115,14 +121,17 @@ def monitoralerts(args):
         sleep(3)
 
 def alerts(args):
-    json_data = WIDSClient(args.address, args.port).getAlerts()
-    results = json.loads(json_data)
-
-    print("\n[+] WIDS Alerts\n")
-    if results.get('success'):
-        for line in json.loads(results.get('data')):
-            print(line)
-    print('\n\n')
+    (error,data) = WIDSClient(args.address, args.port).alerts()
+    if not error == None:
+        processResults(error,data)
+    else:
+        print("\n[+] WIDS Alerts\n")
+        if len(data) == 0:
+            print('No Alerts')
+        else:
+            for line in data:
+                print(line)
+    print('\n')
 
 #
 ###############
@@ -153,6 +162,17 @@ def displayStatus(data):
     terminal_ui.printTable('Modules', data['modules'])
     terminal_ui.printTable('Tasks', data['tasks'])
     terminal_ui.printTable('Rules', data['rules'])
+
+def processResults(error, data):
+    if error == None:
+            print('\n[+] Success\n')
+            if not data == None:
+                print('{0}\n'.format(data))
+    else:
+            print('\n[!] Error: {0}\n'.format(ec.getError(error)))
+            if not data == None:
+                print("{0}".format(data))
+
 
 
 if __name__ == '__main__':

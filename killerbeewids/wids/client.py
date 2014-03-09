@@ -7,6 +7,9 @@ import time
 import traceback
 import urllib2
 
+from killerbeewids.utils.errors import ErrorCodes as ec
+from killerbeewids.utils.rest import makeRequest
+
 class WIDSClient:
 
     def __init__(self, address, port):
@@ -18,70 +21,52 @@ class WIDSClient:
         check if the WIDS server is up and responding to requests
         '''
         resource = '/active'
-        json_data = self.sendPOST(self.address, self.port, resource, {})
-        r = json.loads(json_data)
-        success = r.get('success')
-        if success:
+        (error,data) = makeRequest(self.address, self.port, resource)
+        if error == None:
             return True
         else:
             return False
 
-    def getAlerts(self):
-        resource = '/alert'
-        return self.sendPOST(self.address, self.port, resource, {})
+    def status(self):
+        resource = '/status'
+        return makeRequest(self.address, self.port, resource)
+
+    def alerts(self):
+        resource = '/alerts'
+        return makeRequest(self.address, self.port, resource, {})
 
     def generateAlert(self, alert_name):
-        resource = '/alert/generate'
-        return self.sendPOST(self.address, self.port, resource, {'alert_name':alert_name})
-
-    def getStatus(self):
-        resource = '/status'
-        return self.sendPOST(self.address, self.port, resource, {})
+        resource = '/alerts/generate'
+        return makeRequest(self.address, self.port, resource, {'alert_name':alert_name})
 
     def addDrone(self, drone_url):
         resource = '/drone/add'
         parameters = {'url':drone_url}
-        return self.sendPOST(self.address, self.port, resource, parameters)
+        return makeRequest(self.address, self.port, resource, parameters)
 
     def delDrone(self, drone_index):
         resource = '/drone/delete'
         parameters = {'drone_index':drone_index}
-        return self.sendPOST(self.address, self.port, resource, parameters)
+        return makeRequest(self.address, self.port, resource, parameters)
 
-    def taskDrone(self, droneIndexList, task_uuid, task_plugin, task_channel, task_parameters):
+    def taskDrone(self, droneIndexList, task_uuid, task_plugin, task_channel, task_parameters, module_index=None):
         resource = '/drone/task'
-        parameters = {'droneIndexList':droneIndexList, 'uuid':task_uuid, 'channel':task_channel, 'plugin':task_plugin, 'parameters':task_parameters}
-        return self.sendPOST(self.address, self.port, resource, parameters)
+        parameters = {'droneIndexList':droneIndexList, 'uuid':task_uuid, 'channel':task_channel, 'plugin':task_plugin, 'parameters':task_parameters, 'module_index':module_index}
+        return makeRequest(self.address, self.port, resource, parameters)
+
+    def detaskDrone(self, droneIndexList, task_uuid):
+        resource = '/drone/detask'
+        parameters = {'droneIndexList':droneIndexList, 'uuid':task_uuid}
+        return makeRequest(self.address, self.port, resource, parameters)
 
     def loadModule(self, name, settings):
         resource = '/module/load'
         parameters = {'name':name, 'settings':settings}
-        return self.sendPOST(self.address, self.port, resource, parameters)
+        return makeRequest(self.address, self.port, resource, parameters)
 
     def unloadModule(self, module_index):
         resource = '/module/unload'
         parameters = {'module_index':module_index}
-        return self.sendPOST(self.address, self.port, resource, parameters)
-
-
-    def sendGET(self, address, port, resource):
-        pass
-
-    def sendPOST(self, address, port, resource, data):
-        url = "http://{0}:{1}{2}".format(address, port, resource)
-        http_headers = {'Content-Type' : 'application/json', 'User-Agent' : 'DroneClient'}
-        post_data_json = json.dumps(data)
-        request_object = urllib2.Request(url, post_data_json, http_headers)
-        try:
-            response_object = urllib2.urlopen(request_object)
-        except:
-            print('failed to connect to drone')
-            return json.dumps({'success':False, 'data':'Error - could not connect to drone'})
-
-        try:
-            response_string = response_object.read()
-            return json.dumps({'success':True, 'data':response_string})
-        except:
-            return json.dumps({'success':False, 'data':'Error - failed to read response from drone'})
+        return makeRequest(self.address, self.port, resource, parameters)
 
 

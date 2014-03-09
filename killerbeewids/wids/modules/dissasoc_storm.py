@@ -16,17 +16,25 @@ class DisassociationStormMonitor(AnalyticModule):
     be attempting to enumerate the routers/coordinators on the protected
     network. Tools such as KillerBee zbstumbler preform this scan.
     '''
-    def __init__(self, settings, config):
-        AnalyticModule.__init__(self, settings, config, "DisassociationStormMonitor")
+    def __init__(self, settings, config, shutdown_event):
+        AnalyticModule.__init__(self, settings, config, shutdown_event, "DisassociationStormMonitor")
 
-    '''
-    this is going to the base class
-    '''
-    def waitForWIDS(self):
-        while not self.widsclient.isActive():
-            sleep(0.1)
+    @staticmethod
+    def validate_settings(settings):
+        '''
+        performs validation to ensure the neccessary settings are present
+        '''
+        required_settings = ['channel', 'module_index']
+        for setting in required_settings:
+            if not setting in settings.keys():
+                error = ec.ERROR_WIDS_MissingModuleSetting
+                data = settings
+                return (error,data)
+        return (None,None)
 
     def run(self):
+        signal.signal(signal.SIGTERM, self.SIGTERM)
+
         #time.sleep(1)
         self.logutil.log('Starting Execution')
         self.active = True
@@ -45,7 +53,7 @@ class DisassociationStormMonitor(AnalyticModule):
                      }}
         #TODO channel needs to be set dynamically
         uuid_dot15d4 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
-                                    task_channel=channel, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters, module_index=self.moduleIndex())
         if not uuid_dot15d4 == None:
             self.logutil.log('Successfully tasked drone with task: {0}'.format(uuid_dot15d4))
         else:
@@ -60,14 +68,14 @@ class DisassociationStormMonitor(AnalyticModule):
                      }
         #TODO channel needs to be set dynamically
         uuid_zbnwk = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin',
-                                    task_channel=channel, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters, module_index=self.moduleIndex())
         if not uuid_zbnwk == None:
             self.logutil.log('Successfully tasked drone with task: {0}'.format(uuid_zbnwk))
         else:
             self.logutil.log('ERROR: Failed to Task Drone')
 
         # Get packets from database and run statistics
-        while self.active:
+        while not self.shutdown_event.is_set():
             #pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
             pkts = self.getPackets(uuidFilterList=[uuid_zbnwk], new=True)
             self.logutil.debug("Found {0} packets since last check.".format(len(pkts)))
@@ -130,7 +138,19 @@ class DisassociationStormMonitor(AnalyticModule):
                 self.logutil.log("alert: {0} / coordinator={1}, device={2}.".format(msg, coordinator, device))
 
             time.sleep(15)
+        self.shutdown()
+
 
     def cleanup(self):
         pass
+
+
+
+
+
+
+
+
+
+
 

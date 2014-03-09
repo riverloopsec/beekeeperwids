@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
-from killerbeewids.drone import DroneClient
+from killerbeewids.drone.client import DroneClient
 
 class ModuleContainer:
-    def __init__(self, index, name, settings, process):
+    def __init__(self, index, name, settings, process, shutdown_event):
         self.index = index
         self.name = name
         self.settings = settings
         self.process = process
+        self.shutdown_event = shutdown_event
     def json(self):
         return {'index':self.index, 'name':self.name, 'settings':self.settings, 'process':self.process.pid}
 
@@ -22,7 +23,7 @@ class DroneContainer:
         self.id = None
         self.status = None
         self.heartbeat = None
-        self.client = DroneClient(self.address, self.port)
+        self.api = DroneClient(self.address, self.port)
     def release(self):
         #TODO - implement drone release
         pass
@@ -40,12 +41,14 @@ class RuleContainer:
 
 
 class TaskContainer:
-    def __init__(self, id, uuid, plugin, channel, callback, parameters):
+    def __init__(self, id, uuid, plugin, channel, parameters, drones, module_index):
         self.id = id
         self.uuid = uuid
         self.plugin = plugin
         self.channel = channel
         self.parameters = parameters
+        self.drones = drones
+        self.module_index = module_index
     def json(self):
         return {'id':self.id, 'uuid':self.uuid, 'plugin':self.plugin, 'channel':self.channel, 'parameters':self.parameters}
 

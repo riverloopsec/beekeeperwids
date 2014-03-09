@@ -3,6 +3,7 @@
 import os
 import json
 import traceback
+from time import sleep
 from datetime import datetime
 from uuid import uuid4
 from multiprocessing import Process
@@ -11,29 +12,43 @@ from killerbeewids.wids.database import *
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil, dateToMicro
 
+import signal
+import sys
+
 #TODO - import sendPOST from utils
 
 class AnalyticModule(Process):
 
-    def __init__(self, settings, config, name):
+    def __init__(self, settings, config, shutdown_event, name):
         Process.__init__(self)
         self.name = name
         self.settings = settings
         self.config = config
+        self.shutdown_event = shutdown_event
         self.database = DatabaseHandler(self.config.name)
         self.logutil = KBLogUtil(self.config.name, self.name, None)
-        self.widsclient = WIDSClient(self.config.server_ip, self.config.server_port)
+        self.wids_api = WIDSClient(self.config.server_ip, self.config.server_port)
         self.tasks = {}
         self.active = False
         self.running = False
 
-    def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters):
+    def SIGTERM(self,a,b):
+        self.logutil.log('SIGTERM')
+        self.shutdown()
+
+    def moduleIndex(self):
+        return self.settings.get('module_index')
+
+    def waitForWIDS(self):
+        while not self.wids_api.isActive():
+            sleep(0.1)
+
+    def taskDrone(self, droneIndexList, task_plugin, task_channel, task_parameters, module_index):
         try:
             task_uuid = str((uuid4()))
-            json_result = self.widsclient.taskDrone(droneIndexList, task_uuid, task_plugin, task_channel, task_parameters)
-            result = json.loads(json_result)
-            if result.get('success'): 
-                self.tasks[task_uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters, 'drones':droneIndexList}
+            (error,data) = self.wids_api.taskDrone(droneIndexList, task_uuid, task_plugin, task_channel, task_parameters, module_index)
+            if error == None:
+                self.tasks[task_uuid] = {'plugin':task_plugin, 'channel':task_channel, 'parameters':task_parameters, 'drones':droneIndexList, 'uuid':task_uuid, 'module_index':module_index}
                 return task_uuid 
             else:
                 return False
@@ -43,9 +58,15 @@ class AnalyticModule(Process):
             return False
 
     def detaskDrone(self, droneIndexList, uuid):
-        pass
+        self.logutil.log('Detasking UUID: {0} from Drones: {1}'.format(uuid,droneIndexList))
+        try:
+            self.wids_api.detaskDrone(droneIndexList, uuid)
+        except Exception:
+            etb = traceback.format_exc()
+            self.logutil.trace(etb)
 
     def detaskAll(self):
+        self.logutil.log('Detasking all active tasks ({0} found)'.format(len(self.tasks.values())))
         for task in self.tasks.values():
             uuid = task.get('uuid')
             droneIndexList = task.get('drones')
@@ -61,15 +82,13 @@ class AnalyticModule(Process):
         event_data = {'module':self.name, 'name':name, 'details':details, 'related_packets':related_packets, 'related_uuids':related_uuids, 'datetime':dateToMicro(datetime.utcnow())}
         return self.database.storeEvent(event_data)
 
-    def shutdown(self):
+    def shutdown(self, detask=True):
         self.logutil.log('Received Shutdown Request')
-        self.active = False
-        while self.running:
-            pass
-        self.detaskAll()
         self.cleanup()
         self.logutil.log('Module Shutdown Complete')
-        self.terminate()
+        sys.exit()
+
+
 
 
 

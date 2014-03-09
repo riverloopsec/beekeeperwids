@@ -11,7 +11,7 @@ from time import sleep
 from killerbeewids.drone.client import DroneClient
 from killerbeewids.drone.daemon import DroneDaemon
 from killerbeewids.utils import KBLogUtil, terminal_ui
-from killerbeewids import ErrorCodes as ec
+from killerbeewids.utils.errors import ErrorCodes as ec
 
 
         
