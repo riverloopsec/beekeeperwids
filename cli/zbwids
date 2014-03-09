@@ -77,6 +77,15 @@ def unloadModule(args):
 
 
 
+def addrule(args):
+    rule_id         = args.rid
+    rule_name       = args.rname
+    rule_conditions = ast.literal_eval(args.rconditions)
+    rule_actions    = ast.literal_eval(args.ractions)
+    (error,data) = WIDSClient(args.address, args.port).addRule(rule_id, rule_name, rule_conditions, rule_actions)
+    processResults(error,data)
+
+
 def logs(args):
     '''
     tails the logfile for the daemon
@@ -133,11 +142,8 @@ def alerts(args):
                 print(line)
     print('\n')
 
-#
-###############
 
 
-#TODO - factor out this code
 def status(args):
     '''
     queries the drone daemon for status information
@@ -191,19 +197,31 @@ if __name__ == '__main__':
     parser.add_argument('-refresh', action='store', type=int, default=3)
     parser.add_argument('-logs', action='store_true')
     parser.add_argument('-debug', action='store_true')
+    # drones
     parser.add_argument('-listener', action='store_true')
     parser.add_argument('-adddrone', action='store_true')
     parser.add_argument('-deldrone', action='store_true')
     parser.add_argument('-droneurl', action='store')
     parser.add_argument('-droneindex', action='store')
+    # modules
     parser.add_argument('-loadmodule', action='store_true')
     parser.add_argument('-unloadmodule', action='store_true')
     parser.add_argument('-parameters', action='store')
     parser.add_argument('-moduleindex', action='store')
     parser.add_argument('-modulename', action='store')
     parser.add_argument('-modulesettings', action='store')
+    # alerts
     parser.add_argument('-alerts', action='store_true')
     parser.add_argument('-monitoralerts', action='store_true')
+    # rules
+    parser.add_argument('-addrule', action='store_true')
+    parser.add_argument('-delrule', action='store_true')
+    parser.add_argument('-rindex', action='store')
+    parser.add_argument('-rid', action='store')
+    parser.add_argument('-rname', action='store')
+    parser.add_argument('-rconditions', action='store')
+    parser.add_argument('-ractions', action='store')
+    # verbosity
     parser.add_argument('-v', action='store_true')
     parser.add_argument('-vv', action='store_true')
     parser.add_argument('-vvv', action='store_true')
@@ -212,6 +230,8 @@ if __name__ == '__main__':
 
     if args.debug:
         debug(args)
+    elif args.addrule:
+        addrule(args)
     elif args.check:
         check(args)
     elif args.alerts:

@@ -27,6 +27,15 @@ class WIDSClient:
         else:
             return False
 
+    def newRules(self):
+        resource = '/rules/new'
+        return makeRequest(self.address, self.port, resource)
+
+    def addRule(self, rule_id, rule_name, rule_conditions, rule_actions):
+        resource = '/rules/add'
+        parameters = {'rid':rule_id, 'name':rule_name, 'conditions':rule_conditions, 'actions':rule_actions}
+        return makeRequest(self.address, self.port, resource, parameters)
+
     def status(self):
         resource = '/status'
         return makeRequest(self.address, self.port, resource)

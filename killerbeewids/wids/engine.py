@@ -1,24 +1,20 @@
 #!/usr/bin/python
 
 import time
+import traceback
 from datetime import datetime
 from multiprocessing import Process
+from killerbeewids.wids import RuleContainer
 from killerbeewids.wids.database import DatabaseHandler, Event
 from killerbeewids.wids.client import WIDSClient
 from killerbeewids.utils import KBLogUtil, dateToMicro
 
 DEV_DEBUG=True
 
-class RuleDissasocAttack:
+rule1 = RuleContainer(index=0, rid='RD-10384', name='Dissasociation Attack Alert', 
+                    conditions=[('DisassociationStormMonitor', 'ZigbeeNWKCommandPayload Frame Detected', 1)],
+                    actions= [('GenerateAlert', {'name':'Dissasociation Attack Alert'})] )           
 
-    def __init__(self):
-        self.rule_id = 'RD-10384'
-        self.name = 'Dissasociation Attack Alert'
-        self.event_conditions = [('DisassociationStormMonitor', 'ZigbeeNWKCommandPayload Frame Detected', 1)]
-        self.execute_actions  = [('GenerateAlert', {'name':'Dissasociation Attack Alert'})]
-        self.event_index = 0
-
-# TODO - load/unload rules dynamically into engine
 
 class RuleEngine(Process):
 
@@ -33,7 +29,7 @@ class RuleEngine(Process):
         self.rules = []
 
         #///dev///
-        self.rules.append(RuleDissasocAttack())
+        self.rules.append(rule1)
         #////////
 
     def run(self):
@@ -63,30 +59,32 @@ class RuleEngine(Process):
 
     # TODO - replace the internal database with a REST call to query database for events
     def evaluateRule(self, RuleObject):
-        self.logutil.dev('Evaluating Rule: {0} (EventIndex: {1})'.format(RuleObject.name, RuleObject.event_index))
-        for condition in RuleObject.event_conditions:
-            module = condition[0]
-            event  = condition[1]
-            count  = condition[2]
+        try:
+            self.logutil.dev('Evaluating Rule: {0} (EventIndex: {1})'.format(RuleObject.name, RuleObject.event_index))
+            for condition in RuleObject.conditions:
+                module = condition[0]
+                event  = condition[1]
+                count  = condition[2]
 
-            # TODO - replace this direct database query with REST call ????
-            query = self.database.session.query(Event).filter(Event.module == module).filter(Event.name == event).filter(Event.datetime > self.start_time).filter(Event.id > RuleObject.event_index)
+                # TODO - replace this direct database query with REST call ????
+                query = self.database.session.query(Event).filter(Event.module == module).filter(Event.name == event).filter(Event.datetime > self.start_time).filter(Event.id > RuleObject.event_index)
 
-            results_count = query.limit(count).count()
-            self.logutil.dev('Event: {0} - Found: {1} (Events Needed: {2})'.format(event, results_count, count))
-            if not results_count >= count:
-                return False
-            last_result = query.order_by(Event.id.desc()).limit(count).first()
-            RuleObject.event_index = last_result.id
-            self.logutil.log('>>> Rule Conditions Met ({0})'.format(RuleObject.name))
-            for action in RuleObject.execute_actions:
-                actionType   = action[0]
-                actionParams = action[1]
-                if actionType == 'GenerateAlert':
-                    self.action_GenerateAlert(RuleObject.name,  actionParams)
-                if actionType == 'GenerateLog':
-                    self.action_GenerateLog(RuleObject.name, actionParams)
-    
+                results_count = query.limit(count).count()
+                self.logutil.dev('Event: {0} - Found: {1} (Events Needed: {2})'.format(event, results_count, count))
+                if not results_count >= count:
+                    return False
+                last_result = query.order_by(Event.id.desc()).limit(count).first()
+                RuleObject.event_index = last_result.id
+                self.logutil.log('>>> Rule Conditions Met ({0})'.format(RuleObject.name))
+                for action in RuleObject.actions:
+                    actionType   = action[0]
+                    actionParams = action[1]
+                    if actionType == 'GenerateAlert':
+                        self.action_GenerateAlert(RuleObject.name,  actionParams)
+                    if actionType == 'GenerateLog':
+                        self.action_GenerateLog(RuleObject.name, actionParams)
+        except Exception:
+            traceback.print_exc() 
             
     def action_GenerateLog(self, rule_name, action_parameters):
         self.logutil.log('Execution GenerateLog Action for Rule {0}'.format(rule_name))

@@ -32,10 +32,15 @@ class DroneContainer:
 
 
 class RuleContainer:
-    def __init__(self, id, conditions, actions):
-        self.id = id
+    def __init__(self, index, rid, name, conditions, actions):
+        self.index = index
+        self.rid = rid
+        self.name = name
+        self.event_index = 0
         self.conditions = conditions
         self.actions = actions
+        self.read = False
+        self.history = []
     def json(self):
         return {'id':self.id, 'conditions':self.conditions, 'action':self.actions}
 

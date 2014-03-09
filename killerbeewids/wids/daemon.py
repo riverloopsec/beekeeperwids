@@ -254,11 +254,9 @@ class WIDSDaemon:
     def unloadRules(self):
         pass
 
-    def loadRule(self):
-        pass
-
-    def loadRule(self):
-        pass
+    def loadRule(self, ruleConfigDict):
+        print(ruleConfigDict)
+        return self.formatResponse(None,None)
 
     def startServer(self):
         self.logutil.log('Starting Server on port {0}'.format(self.config.server_port))
@@ -272,6 +270,7 @@ class WIDSDaemon:
         app.add_url_rule('/drone/add',          None, self.processDroneAddRequest,          methods=['POST'])
         app.add_url_rule('/drone/delete',       None, self.processDroneDeleteRequest,       methods=['POST'])
         app.add_url_rule('/rules',              None, self.processRuleGetRequest,           methods=['GET'] )
+        app.add_url_rule('/rules/new',          None, self.processRuleNewGetRequest,        methods=['GET'] )
         app.add_url_rule('/rules/add',          None, self.processRuleAddRequest,           methods=['POST'])
         app.add_url_rule('/rules/delete',       None, self.processRuleDeleteRequest,        methods=['POST'])
         app.add_url_rule('/rules/checkupdate',  None, self.processRuleCheckUpdateRequest,   methods=['POST'])
@@ -386,9 +385,17 @@ class WIDSDaemon:
         pass
         # data
 
-    def processRuleAddRequest(self):
+    def processRuleNewGetRequest(self):
         pass
         # data
+
+    def processRuleAddRequest(self):
+        self.logutil.debug('Processing Rule Add Request')
+        try:
+            data = json.loads(flask.request.data)
+            return self.loadRule(data) 
+        except:
+            return self.handleException()
 
     def processRuleDeleteRequest(self):
         pass
@@ -438,7 +445,7 @@ class WIDSConfig:
         self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
         self.modules = []
         #self.modules = [{'name':'BeaconRequestMonitor', 'settings':{'channel':15}}]
-        #self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
+        self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
 
     def loadConfig(self, config):
         #TODO load all parameters above from the config file, and call this at startup
