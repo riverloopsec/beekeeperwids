@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+
 import argparse
+from random import randint
+
 from killerbee import getKillerBee
 from scapy.all import Dot15d4, Dot15d4Data
 
@@ -30,7 +34,7 @@ if __name__=='__main__':
     sechdrtemp = scapy.aux_sec_header #TODO oddly having issue w/ doing directly to main Dot15d4
     sechdrtemp.sec_sc_seclevel = "ENC"       #confidentiality but no integrity
     sechdrtemp.sec_framecounter = 0xFFFFFFFF #max value
-    sechdrtemp.sec_sc_keyidmode = "KeyIndex" 
+    sechdrtemp.sec_sc_keyidmode = "1oKeyIndex" 
     sechdrtemp.sec_keyid_keyindex = 0xFF     #max value
     scapy.aux_sec_header = sechdrtemp
 
