@@ -13,14 +13,20 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     tohex = lambda s: int(s.replace(':', ''), 16)
     parser.add_argument('-f', '--channel', '-c', action='store', dest='channel', required=True, type=int, default=11)
-    #parser.add_argument('-i', '--interface', action='store', dest='devstring', default=None)
+    parser.add_argument('-i', '--interface', action='store', dest='devstring', default=None)
     parser.add_argument('-p', '--panid', action='store', required=True, type=tohex)
     parser.add_argument('-s', '--source', action='store', required=True, type=tohex)
     parser.add_argument('-d', '--destination', action='store', required=True, type=tohex)
     parser.add_argument('-q', '--seqnum', action='store', default=200, type=int)
     args = parser.parse_args()
 
-    kb = getKillerBee(args.channel)
+    kb = KillerBee(device=args.devstring)
+    if kb is None:
+        raise Exception("Failed to create a KillerBee instance.")
+    try:
+        kb.set_channel(args.channel)
+    except Exception, e:
+        raise Exception('Error: Failed to set channel to %d' % channel, e)
 
     scapy = Dot15d4(fcf_frametype="Data")/Dot15d4Data()
     scapy.seqnum = (args.seqnum + randint(1, 10)) % 255
