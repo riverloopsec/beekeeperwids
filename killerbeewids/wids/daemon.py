@@ -390,9 +390,9 @@ class WIDSConfig:
         self.server_ip = '127.0.0.1'
         self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_port)
         self.drones = []
-        self.drones = [{'id':'drone11', 'ip':'127.0.0.1', 'port':9999}]
+        #self.drones = [{'id':'drone11', 'ip':'127.0.0.1', 'port':9999}]
         self.modules = []
-        self.modules = [{'name':'DosAesCtrMonitor', 'settings':{'channel':15}}]
+        #self.modules = [{'name':'DosAesCtrMonitor', 'settings':{'channel':15}}]
         #self.modules = [{'name':'BeaconRequestMonitor', 'settings':{'channel':15}}]
         #self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
 
