@@ -22,6 +22,7 @@ from killerbeewids.wids.database import DatabaseHandler, Alert
 #TODO - import these dynamically
 from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
 from killerbeewids.wids.modules.dissasoc_storm import DisassociationStormMonitor
+from killerbeewids.wids.modules.dos_aesctr import DosAesCtrMonitor
 
 class WIDSDaemon:
 
@@ -172,6 +173,7 @@ class WIDSDaemon:
     def loadModuleClass(self, module):
         if module == 'BeaconRequestMonitor'       : return BeaconRequestMonitor
         if module == 'DisassociationStormMonitor' : return DisassociationStormMonitor
+        if module == 'DosAesCtrMonitor'           : return DosAesCtrMonitor
 
     def loadModule(self, moduleConfigDict):
         self.logutil.debug('Loading Module: {0}'.format(moduleConfigDict))
@@ -199,9 +201,11 @@ class WIDSDaemon:
                 moduleShutdownEvent = Event()
                 moduleSettings['module_index'] = moduleIndex
                 self.logutil.debug('Found module class: {0}'.format(moduleClass))
+                '''
                 (error,data) = moduleClass.validate_settings(moduleSettings) 
                 if not error == None:
                     return self.formatResponse(error,data)
+                '''
                 moduleProcess = moduleClass(moduleSettings, self.config, moduleShutdownEvent)
                 moduleProcess.start()
                 moduleObject = ModuleContainer(moduleIndex, moduleName, moduleSettings, moduleProcess, moduleShutdownEvent)
@@ -386,8 +390,9 @@ class WIDSConfig:
         self.server_ip = '127.0.0.1'
         self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_port)
         self.drones = []
-        #self.drones = [{'id':'drone11', 'ip':'127.0.0.1', 'port':9999}]
+        self.drones = [{'id':'drone11', 'ip':'127.0.0.1', 'port':9999}]
         self.modules = []
+        self.modules = [{'name':'DosAesCtrMonitor', 'settings':{'channel':15}}]
         #self.modules = [{'name':'BeaconRequestMonitor', 'settings':{'channel':15}}]
         #self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
 

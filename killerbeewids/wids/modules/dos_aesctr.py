@@ -1,4 +1,4 @@
-import time, logging
+import time, logging, signal
 from multiprocessing import Process
 from datetime import datetime, timedelta
 
