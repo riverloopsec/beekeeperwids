@@ -85,6 +85,13 @@ class AnalyticModule(Process):
     def generateAlert(self, alert_name):
         return self.database.storeAlert(alert_name)
 
+    def cleanup(self):
+        '''
+        This should be overridden by modules which need to do housekeeping 
+        before shutdown.
+        '''
+        pass
+
     def shutdown(self, detask=True):
         self.logutil.log('Received Shutdown Request')
         self.cleanup()

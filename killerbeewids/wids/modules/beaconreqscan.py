@@ -22,9 +22,6 @@ class BeaconRequestMonitor(AnalyticModule):
         self.active = True
         channel = self.settings.get('channel')
 
-        #TODO remove test:
-        self.registerEvent('test', {'channel':channel})
-
         time.sleep(3)
         self.logutil.log('Submitting Drone Task Request')
 
@@ -35,7 +32,6 @@ class BeaconRequestMonitor(AnalyticModule):
                          'byteoffset': (7, 0xff, 0x07)
                      }}
 
-        #TODO channel needs to be set dynamically
         uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
                                     task_channel=channel, task_parameters=parameters)
 

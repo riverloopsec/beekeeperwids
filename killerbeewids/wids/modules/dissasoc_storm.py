@@ -34,13 +34,10 @@ class DisassociationStormMonitor(AnalyticModule):
 
     def run(self):
         signal.signal(signal.SIGTERM, self.SIGTERM)
-
-        #time.sleep(1)
         self.logutil.log('Starting Execution')
-        self.active = True
         channel = self.settings.get('channel')
 
-        # check that WIDS server is up before submitting a request
+        # Check that WIDS server is up before submitting a request
         self.waitForWIDS()
         self.logutil.log('Submitting Drone Task Request')
 
@@ -51,7 +48,6 @@ class DisassociationStormMonitor(AnalyticModule):
                          'fcf': (0x0300, 0x0300),
                          'byteoffset': (7, 0xff, 0x03)
                      }}
-        #TODO channel needs to be set dynamically
         uuid_dot15d4 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
                                     task_channel=channel, task_parameters=parameters, module_index=self.moduleIndex())
         if not uuid_dot15d4 == None:
@@ -66,7 +62,6 @@ class DisassociationStormMonitor(AnalyticModule):
                          'byteoffset': (9, 0x03, 0x01) #offset within the ZB pkt for Frame Type: Command (0x0001)
                          #'byteoffset': (0x21, 0xff, 0x04) #offset within the ZB pkt for Command Identifier: Leave (0x04)
                      }
-        #TODO channel needs to be set dynamically
         uuid_zbnwk = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin',
                                     task_channel=channel, task_parameters=parameters, module_index=self.moduleIndex())
         if not uuid_zbnwk == None:
@@ -76,6 +71,7 @@ class DisassociationStormMonitor(AnalyticModule):
 
         # Get packets from database and run statistics
         while not self.shutdown_event.is_set():
+            #TODO we need to get packets for both UUIDs!!!
             #pkts = self.getPackets(uuidFilterList=[uuid_dot15d4, uuid_zbnwk], new=True)
             pkts = self.getPackets(uuidFilterList=[uuid_zbnwk], new=True)
             self.logutil.debug("Found {0} packets since last check.".format(len(pkts)))
@@ -140,19 +136,6 @@ class DisassociationStormMonitor(AnalyticModule):
                 self.logutil.log("alert: {0} / coordinator={1}, device={2}.".format(msg, coordinator, device))
 
             time.sleep(15)
+
         self.shutdown()
-
-
-    def cleanup(self):
-        pass
-
-
-
-
-
-
-
-
-
-
 
