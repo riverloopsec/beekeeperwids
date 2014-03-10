@@ -3,7 +3,7 @@
 import argparse
 from random import randint
 
-from killerbee import getKillerBee
+from killerbee import KillerBee
 from scapy.all import Dot15d4, Dot15d4Data
 
 # Command line main function

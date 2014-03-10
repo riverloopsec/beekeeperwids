@@ -2,6 +2,8 @@ import time, logging, signal
 from multiprocessing import Process
 from datetime import datetime, timedelta
 
+from scapy.all import Dot15d4FCS
+
 from killerbeewids.wids.modules import AnalyticModule
 from killerbeewids.utils import dateToMicro
 
@@ -48,6 +50,8 @@ class DosAesCtrMonitor(AnalyticModule):
                 if spkt.fcf_security != True:
                     self.logutil.log("Packets are excepted to have 802.15.4 security for this analytic.")
                 elif spkt.aux_sec_header.sec_framecounter > 0xFF000000:
+                    self.logutil.log('Generating Alert: HighFrameCounterDetection')
+                    self.generateAlert('HighFrameCounterDetection')
                     self.registerEvent(name='HighFrameCounterDetection', 
                                        details={'channel':channel, 'pkt':pkt})
 
