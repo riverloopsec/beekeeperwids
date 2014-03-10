@@ -48,9 +48,9 @@ class WIDSClient:
         resource = '/alerts/generate'
         return makeRequest(self.address, self.port, resource, {'alert_name':alert_name})
 
-    def addDrone(self, drone_url):
+    def addDrone(self, ip, port):
         resource = '/drone/add'
-        parameters = {'url':drone_url}
+        parameters = {'ip':ip, 'port':port}
         return makeRequest(self.address, self.port, resource, parameters)
 
     def delDrone(self, drone_index):

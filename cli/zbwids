@@ -51,8 +51,8 @@ def addDrone(args):
     '''
     sends request to load a new drone to the WIDS
     '''
-    json_data = WIDSClient(args.address, args.port).addDrone(args.droneurl)
-    print(json_data)
+    (error,data) = WIDSClient(args.address, args.port).addDrone(args.droneip, args.droneport)
+    processResults(error,data)
 
 def delDrone(args):
     '''
@@ -201,7 +201,8 @@ if __name__ == '__main__':
     parser.add_argument('-listener', action='store_true')
     parser.add_argument('-adddrone', action='store_true')
     parser.add_argument('-deldrone', action='store_true')
-    parser.add_argument('-droneurl', action='store')
+    parser.add_argument('-droneip', action='store')
+    parser.add_argument('-droneport', action='store')
     parser.add_argument('-droneindex', action='store')
     # modules
     parser.add_argument('-loadmodule', action='store_true')

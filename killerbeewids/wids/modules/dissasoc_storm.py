@@ -103,11 +103,13 @@ class DisassociationStormMonitor(AnalyticModule):
                     else:
                         msg         = "802.15.4 Dissassociation Frame (Reason has an unexpected value)"
                     self.registerEvent(name=event_name, details={'msg':msg}, related_packets=[pkt.id])
+                    self.genereateAlert('Dissassociation Attack Alert')
                 # Or it's a ZigBee frame, which our uuid_zbnwk task should request
                 elif ZigbeeNWKCommandPayload in spkt:
                     event_name = 'ZigbeeNWKCommandPayload Frame Detected'
                     self.logutil.log('EVENT: {0}: {1}'.format(event_name, spkt.summary()))
                     self.registerEvent(name=event_name, details={}, related_packets=[pkt.id])
+                    self.generateAlert('Dissassociation Attack Alert')
                     if spkt.cmd_identifier != "leave":
                         continue    # It isn't the disassoc we're looking for
                     elif spkt.request == 0:  # Device leaving

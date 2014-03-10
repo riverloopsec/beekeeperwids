@@ -156,7 +156,7 @@ class DroneDaemon:
             interface = self.getAvailableInterface()
             if interface == None:
                 self.logutil.log('Failed to Start Plugin - No Avilable Interfaces')
-                error = ec.ERROR_DroneHasNoAvailableInterface
+                error = ec.ERROR_DRONE_UnavailableInterface
                 return (error, None)
             pluginClass = self.loadPluginClass(plugin)
             if pluginClass == None:

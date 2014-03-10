@@ -82,6 +82,9 @@ class AnalyticModule(Process):
         event_data = {'module':self.name, 'name':name, 'details':details, 'related_packets':related_packets, 'related_uuids':related_uuids, 'datetime':dateToMicro(datetime.utcnow())}
         return self.database.storeEvent(event_data)
 
+    def generateAlert(self, alert_name):
+        return self.database.storeAlert(alert_name)
+
     def shutdown(self, detask=True):
         self.logutil.log('Received Shutdown Request')
         self.cleanup()

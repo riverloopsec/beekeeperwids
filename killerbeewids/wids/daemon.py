@@ -18,7 +18,6 @@ from killerbeewids.utils import KBLogUtil, microToDate
 from killerbeewids.drone.client import DroneClient
 from killerbeewids.wids import ModuleContainer, DroneContainer, RuleContainer, TaskContainer, Configuration
 from killerbeewids.wids.database import DatabaseHandler, Alert
-from killerbeewids.wids.engine import RuleEngine
 
 #TODO - import these dynamically
 from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
@@ -35,8 +34,6 @@ class WIDSDaemon:
         self.engine = None
         self.module_store = {}
         self.module_counter = 0
-        self.rule_store = {}
-        self.rule_counter = 0
         self.task_store = {}
         self.task_counter = 0
         self.drone_store = {}
@@ -51,32 +48,17 @@ class WIDSDaemon:
         self.logutil.writePID()
         self.logutil.startlog()
         self.logutil.log('Starting Daemon')
-        self.startEngine()
-        self.loadRules()
         self.loadDrones()
         self.loadModules()
         self.startServer()
 
     def stopDaemon(self):
         self.logutil.log('Initiating Shutdown')
-        self.stopEngine()
         self.unloadModules()
-        self.unloadRules()
         self.unloadDrones()
         self.logutil.log('Successfull Shutdown')
         self.logutil.cleanup()
         sys.exit()
-
-    def startEngine(self):
-        self.logutil.log('Starting RuleEngine')
-        self.engine = RuleEngine(self.config)
-        self.engine.start()
-        self.config.engine_pid = self.engine.pid
-
-    def stopEngine(self):
-        self.engine.shutdown()
-        self.engine.join()
-        self.logutil.log('Terminated Engine Process')
 
     def loadDrones(self):
         count = len(self.config.drones)
@@ -86,19 +68,20 @@ class WIDSDaemon:
 
     def loadDrone(self, droneConfigDict):
         try:
-            drone_address = str(droneConfigDict.get('address', None))
+            print(droneConfigDict)
+            drone_ip = str(droneConfigDict.get('ip', None))
             drone_port = str(droneConfigDict.get('port', None))
-            if drone_address == None or drone_port == None:
+            if drone_ip == None or drone_port == None:
                 error = 'Error: Missing Parameter: "address"'
                 self.logutil.log(error)
-                return self.formatResponse(False, error)
+                return self.formatResponse(error, None)
             else:
                 droneIndex = self.drone_counter
-                droneObject = DroneContainer(droneIndex, drone_address, drone_port)
+                droneObject = DroneContainer(droneIndex, drone_ip, drone_port)
                 self.drone_store[droneIndex] = droneObject
                 self.drone_counter += 1
-                self.logutil.log('Loading Drone {0} - {1}:{2}'.format(droneIndex, droneObject.address, droneObject.port))
-                return self.formatResponse(True, None)
+                self.logutil.log('Loading Drone {0} - {1}:{2}'.format(droneIndex, drone_ip, drone_port))
+                return self.formatResponse(None, None)
         except:
             self.handleException()
 
@@ -136,15 +119,15 @@ class WIDSDaemon:
                 task_parameters = taskConfigDict.get('parameters', None)
                 module_index = taskConfigDict.get('module_index', None)
                 if droneObject == None:
-                    error = ec.ERROR_InvalidDroneIndex
+                    error = ec.ERROR_DRONE_InvalidDroneIndex
                     data = droneIndexInt
                     return (error,data)
                 if task_uuid == None:
-                    error = ec.ERROR_MissingDroneTaskParameter
+                    error = ec.ERROR_DRONE_MissingDroneTaskParameter
                     data = 'uuid'
                     return (error, data)
                 if task_channel == None:
-                    error = ec.ERROR_MissingDroneTaskParameter
+                    error = ec.ERROR_DRONE_MissingDroneTaskParameter
                     data = 'channel'
                     return (error, data)
                 if task_plugin == None:
@@ -195,20 +178,27 @@ class WIDSDaemon:
         try:
             moduleName = moduleConfigDict.get('name', None)
             moduleSettings = moduleConfigDict.get('settings', None)
+            moduleClass = self.loadModuleClass(moduleName)
             if moduleName == None:
-                error = 'Error: Missing Parameters: "name"'
-                self.logutil.log(error)
-                return self.formatResponse(False, error)
+                error = ec.ERROR_WIDS_MissingModuleParameter
+                data = 'name'
                 self.logutil.log('Failed to Load Module - Missing Parameter: "name" in {0}\n'.format(moduleConfigDict))
+                return self.formatResponse(error,data)
             elif moduleSettings == None:
-                error = 'Error: Missing Parameters: "settings"'
-                self.logutil.log(error)
-                return self.formatResponse(False, error)
+                error = ec.ERROR_WIDS_MissingModuleParameter
+                data = 'settings'
+                self.logutil.log('Failed to Load Module - Missing Parameter: "settings" in {0}\n'.format(moduleConfigDict))
+                return self.formatResponse(error,data)
+            elif moduleClass == None:
+                error = ec.ERROR_WIDS_MissingModuleClass
+                data = moduleName
+                self.logutil.log('Failed to Load Module - Could not load class: {0}'.format(moduleName))
+                return self.formatResponse(error,data)
             else:
                 moduleIndex = self.module_counter
                 moduleShutdownEvent = Event()
                 moduleSettings['module_index'] = moduleIndex
-                moduleClass = self.loadModuleClass(moduleName)
+                self.logutil.debug('Found module class: {0}'.format(moduleClass))
                 (error,data) = moduleClass.validate_settings(moduleSettings) 
                 if not error == None:
                     return self.formatResponse(error,data)
@@ -218,7 +208,7 @@ class WIDSDaemon:
                 self.module_store[moduleIndex] = moduleObject
                 self.module_counter += 1
                 self.logutil.log('Loading Module {0} - {1}'.format(moduleIndex, moduleObject.name))
-                return self.formatResponse(True, None)
+                return self.formatResponse(None, None)
         except:
             self.handleException()
 
@@ -248,16 +238,6 @@ class WIDSDaemon:
             self.handleException()
 
 
-    def loadRules(self):
-        pass
-
-    def unloadRules(self):
-        pass
-
-    def loadRule(self, ruleConfigDict):
-        print(ruleConfigDict)
-        return self.formatResponse(None,None)
-
     def startServer(self):
         self.logutil.log('Starting Server on port {0}'.format(self.config.server_port))
         app = flask.Flask(__name__)
@@ -269,11 +249,6 @@ class WIDSDaemon:
         app.add_url_rule('/drone/detask',       None, self.processDroneDetaskRequest,       methods=['POST'])
         app.add_url_rule('/drone/add',          None, self.processDroneAddRequest,          methods=['POST'])
         app.add_url_rule('/drone/delete',       None, self.processDroneDeleteRequest,       methods=['POST'])
-        app.add_url_rule('/rules',              None, self.processRuleGetRequest,           methods=['GET'] )
-        app.add_url_rule('/rules/new',          None, self.processRuleNewGetRequest,        methods=['GET'] )
-        app.add_url_rule('/rules/add',          None, self.processRuleAddRequest,           methods=['POST'])
-        app.add_url_rule('/rules/delete',       None, self.processRuleDeleteRequest,        methods=['POST'])
-        app.add_url_rule('/rules/checkupdate',  None, self.processRuleCheckUpdateRequest,   methods=['POST'])
         app.add_url_rule('/alerts',             None, self.processAlertGetRequest,          methods=['POST'])
         app.add_url_rule('/alerts/generate',    None, self.processAlertGenerateRequest,     methods=['POST'])
         app.add_url_rule('/module/load',        None, self.processModuleLoadRequest,        methods=['POST'])
@@ -370,9 +345,8 @@ class WIDSDaemon:
         except:
             return self.handleException()
         
-
     def processAlertGetRequest(self):
-        self.logutil.debug('Processing Alert Request')
+        #self.logutil.debug('Processing Alert Request')
         try:
             alerts = []
             for alert in self.database.session.query(Alert).all():
@@ -380,37 +354,6 @@ class WIDSDaemon:
             return self.formatResponse(None, alerts)
         except:
             return self.handleException()
-
-    def processRuleGetRequest(self):
-        pass
-        # data
-
-    def processRuleNewGetRequest(self):
-        pass
-        # data
-
-    def processRuleAddRequest(self):
-        self.logutil.debug('Processing Rule Add Request')
-        try:
-            data = json.loads(flask.request.data)
-            return self.loadRule(data) 
-        except:
-            return self.handleException()
-
-    def processRuleDeleteRequest(self):
-        pass
-        # ruleID
-
-    def processRuleCheckUpdateRequest(self):
-        self.logutil.debug('Processing Alert Request')
-        try:
-            if self.new_rules:
-                return self.formatResponse(True, {'newrules':True})
-            else:
-                return self.formatResponse(True, {'newrules':False})
-        except:
-            return self.handleException()
-
 
     def processStatusGetRequest(self):
         self.logutil.log('Processing Status Request')
@@ -442,10 +385,11 @@ class WIDSConfig:
         self.server_port = 8888
         self.server_ip = '127.0.0.1'
         self.upload_url = 'http://{0}:{1}/data/upload'.format(self.server_ip, self.server_port)
-        self.drones = [{'id':'drone11', 'address':'127.0.0.1', 'port':9999}]
+        self.drones = []
+        #self.drones = [{'id':'drone11', 'ip':'127.0.0.1', 'port':9999}]
         self.modules = []
         #self.modules = [{'name':'BeaconRequestMonitor', 'settings':{'channel':15}}]
-        self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
+        #self.modules = [{'name':'DisassociationStormMonitor', 'settings':{'channel':15}}]
 
     def loadConfig(self, config):
         #TODO load all parameters above from the config file, and call this at startup
