@@ -14,8 +14,8 @@ class BeaconRequestMonitor(AnalyticModule):
     be attempting to enumerate the routers/coordinators on the protected
     network. Tools such as KillerBee zbstumbler preform this scan.
     '''
-    def __init__(self, settings, config):
-        AnalyticModule.__init__(self, settings, config, "BeaconRequestMonitor")
+    def __init__(self, settings, config, shutdown_event):
+        AnalyticModule.__init__(self, settings, config, shutdown_event,"BeaconRequestMonitor")
 
     def run(self):
         self.logutil.log('Starting Execution')
@@ -33,7 +33,7 @@ class BeaconRequestMonitor(AnalyticModule):
                      }}
 
         uuid_task1 = self.taskDrone(droneIndexList=[0], task_plugin='CapturePlugin', 
-                                    task_channel=channel, task_parameters=parameters)
+                                    task_channel=channel, task_parameters=parameters, module_index=self.moduleIndex())
 
         if uuid_task1 == False:
             self.logutil.log('Failed to Task Drone')
@@ -58,9 +58,9 @@ class BeaconRequestMonitor(AnalyticModule):
             #     see in a given time, and if we're significantly higher
             #     than that all of a sudden, we're concerned.
             if n30 > 2 and n30 > (an90*1.5):
-                self.logutil.log("alert: Noticed increased beacon requests. (n30={0}, an90={1})".format(n30, an90))
-
+                self.logutil.log(">>>>>ALERT: Noticed increased beacon requests. (n30={0}, an90={1})".format(n30, an90))
                 self.registerEvent(name='IncreasedBeaconRequestDetection', details={'channel':channel, 'n30':n30, 'n120':n120, 'an90':an90})
+                self.generateAlert('IncreasedBeaconRequestDetection')
 
             # Look for cyclic patterns that indicate a slower scan, perhaps
             #     one is switching across all the channels.
