@@ -17,8 +17,9 @@ layer of Scapy (available in the scapy-com repository).
 
 
 License
-=============
+------------
 
-Copyright 2014 River Loop Security, LLC
-Released under GPLv2 per LICENSE.txt.
+Copyright 2014 River Loop Security, LLC.
+It is released under GPLv2 per LICENSE.txt.
+
 
