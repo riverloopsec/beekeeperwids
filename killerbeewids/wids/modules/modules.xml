@@ -1,6 +1,0 @@
-<root>
-
-<module name='BandwidthMonitor' path='killerbeewids.wids.modules.bandwidth'/>
-<module name='BeaconRequestMonitor' path='killerbeewids.wids.modules.beaconreqscan'/>
-
-</root>

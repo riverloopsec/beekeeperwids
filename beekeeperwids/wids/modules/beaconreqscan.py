@@ -5,8 +5,8 @@ from multiprocessing import Process
 from time import sleep
 from datetime import datetime, timedelta
 
-from killerbeewids.wids.modules import AnalyticModule
-from killerbeewids.utils import dateToMicro
+from beekeeperwids.wids.modules import AnalyticModule
+from beekeeperwids.utils import dateToMicro
 
 class BeaconRequestMonitor(AnalyticModule):
     '''

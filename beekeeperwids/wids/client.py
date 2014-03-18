@@ -7,8 +7,8 @@ import time
 import traceback
 import urllib2
 
-from killerbeewids.utils.errors import ErrorCodes as ec
-from killerbeewids.utils.rest import makeRequest
+from beekeeperwids.utils.errors import ErrorCodes as ec
+from beekeeperwids.utils.rest import makeRequest
 
 class WIDSClient:
 

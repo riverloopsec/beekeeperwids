@@ -7,7 +7,7 @@ rmspeers 2013 riverloopsecurity.com
 import os
 from multiprocessing import Process
 
-from killerbeewids.utils import KBLogUtil
+from beekeeperwids.utils import KBLogUtil
 
 class SnifferProcess(Process):
     '''

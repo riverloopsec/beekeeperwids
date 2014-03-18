@@ -10,7 +10,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
-from killerbeewids.utils import KB_CONFIG_PATH, dateToMicro
+from beekeeperwids.utils import KB_CONFIG_PATH, dateToMicro
 
 Base = declarative_base()
 

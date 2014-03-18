@@ -13,7 +13,7 @@ import base64
 import traceback
 from struct import unpack
 
-from killerbeewids.utils import KBLogUtil, dateToMicro
+from beekeeperwids.utils import KBLogUtil, dateToMicro
 
 class FilterProcess(Process):
     def __init__(self, pipe, task_queue, stopevent, task_update_event, drone, parent):

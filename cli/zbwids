@@ -8,10 +8,10 @@ import json
 import traceback
 from time import sleep
 
-from killerbeewids.wids.daemon import WIDSDaemon
-from killerbeewids.wids.client import WIDSClient
-from killerbeewids.utils import KBLogUtil, terminal_ui
-from killerbeewids.utils.errors import ErrorCodes as ec
+from beekeeperwids.wids.daemon import WIDSDaemon
+from beekeeperwids.wids.client import WIDSClient
+from beekeeperwids.utils import KBLogUtil, terminal_ui
+from beekeeperwids.utils.errors import ErrorCodes as ec
 
 def debug(args):
     pass

@@ -8,10 +8,10 @@ import json
 import flask
 import traceback
 from time import sleep
-from killerbeewids.drone.client import DroneClient
-from killerbeewids.drone.daemon import DroneDaemon
-from killerbeewids.utils import KBLogUtil, terminal_ui
-from killerbeewids.utils.errors import ErrorCodes as ec
+from beekeeperwids.drone.client import DroneClient
+from beekeeperwids.drone.daemon import DroneDaemon
+from beekeeperwids.utils import KBLogUtil, terminal_ui
+from beekeeperwids.utils.errors import ErrorCodes as ec
 
 
         

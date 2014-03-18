@@ -8,9 +8,9 @@ from datetime import datetime
 from uuid import uuid4
 from multiprocessing import Process
 
-from killerbeewids.wids.database import *
-from killerbeewids.wids.client import WIDSClient
-from killerbeewids.utils import KBLogUtil, dateToMicro
+from beekeeperwids.wids.database import *
+from beekeeperwids.wids.client import WIDSClient
+from beekeeperwids.utils import KBLogUtil, dateToMicro
 
 import signal
 import sys

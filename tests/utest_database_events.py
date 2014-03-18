@@ -7,7 +7,7 @@ jvazquez 2013 riverloopsecurity.com
 
 import unittest
 
-from killerbeewids.wids.database import DatabaseHandler, Event
+from beekeeperwids.wids.database import DatabaseHandler, Event
 
 total_count = 36
 

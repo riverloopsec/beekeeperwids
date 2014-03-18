@@ -3,7 +3,7 @@
 import os
 import time
 from multiprocessing import Pipe, Event, Manager
-from killerbeewids.utils import KBLogUtil
+from beekeeperwids.utils import KBLogUtil
 
 class BaseDronePlugin(object):
     def __init__(self, interfaces, channel, drone, name):

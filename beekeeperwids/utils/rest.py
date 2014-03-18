@@ -3,7 +3,7 @@
 import traceback
 import urllib2
 import json
-from killerbeewids.utils.errors import ErrorCodes as ec
+from beekeeperwids.utils.errors import ErrorCodes as ec
 
 def makeRequest(address, port, resource, data=None):
     url = "http://{0}:{1}{2}".format(address, port, resource)

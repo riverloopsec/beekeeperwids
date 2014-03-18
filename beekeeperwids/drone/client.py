@@ -4,8 +4,8 @@ import urllib2
 import json
 import traceback
 
-from killerbeewids.utils.errors import ErrorCodes as ec
-from killerbeewids.utils.rest import makeRequest
+from beekeeperwids.utils.errors import ErrorCodes as ec
+from beekeeperwids.utils.rest import makeRequest
 
 class DroneClient:
 

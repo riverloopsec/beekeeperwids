@@ -13,16 +13,16 @@ from collections import OrderedDict
 from xml.etree import ElementTree as ET
 from multiprocessing import Pipe, Event, Manager, Lock
 
-from killerbeewids.utils.errors import ErrorCodes as ec
-from killerbeewids.utils import KBLogUtil, microToDate
-from killerbeewids.drone.client import DroneClient
-from killerbeewids.wids import ModuleContainer, DroneContainer, RuleContainer, TaskContainer, Configuration
-from killerbeewids.wids.database import DatabaseHandler, Alert
+from beekeeperwids.utils.errors import ErrorCodes as ec
+from beekeeperwids.utils import KBLogUtil, microToDate
+from beekeeperwids.drone.client import DroneClient
+from beekeeperwids.wids import ModuleContainer, DroneContainer, RuleContainer, TaskContainer, Configuration
+from beekeeperwids.wids.database import DatabaseHandler, Alert
 
 #TODO - import these dynamically
-from killerbeewids.wids.modules.beaconreqscan import BeaconRequestMonitor
-from killerbeewids.wids.modules.dissasoc_storm import DisassociationStormMonitor
-from killerbeewids.wids.modules.dos_aesctr import DosAesCtrMonitor
+from beekeeperwids.wids.modules.beaconreqscan import BeaconRequestMonitor
+from beekeeperwids.wids.modules.dissasoc_storm import DisassociationStormMonitor
+from beekeeperwids.wids.modules.dos_aesctr import DosAesCtrMonitor
 
 class WIDSDaemon:
 

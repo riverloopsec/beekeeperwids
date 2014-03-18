@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from killerbeewids.drone.client import DroneClient
+from beekeeperwids.drone.client import DroneClient
 
 class ModuleContainer:
     def __init__(self, index, name, settings, process, shutdown_event):

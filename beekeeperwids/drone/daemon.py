@@ -16,9 +16,9 @@ import signal
 import traceback
 from uuid import uuid4 as generateUUID
 from killerbee import kbutils
-from killerbeewids.utils.errors import ErrorCodes as ec
-from killerbeewids.utils import KBLogUtil, KBInterface
-from killerbeewids.drone.plugins.capture import CapturePlugin
+from beekeeperwids.utils.errors import ErrorCodes as ec
+from beekeeperwids.utils import KBLogUtil, KBInterface
+from beekeeperwids.drone.plugins.capture import CapturePlugin
 
 class DroneDaemon:
 

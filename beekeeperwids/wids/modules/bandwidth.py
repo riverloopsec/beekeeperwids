@@ -6,7 +6,7 @@ import logging
 from multiprocessing import Process
 from uuid import uuid4
 
-from killerbeewids.wids.modules import AnalyticModule
+from beekeeperwids.wids.modules import AnalyticModule
 
 class BandwidthMonitor(AnalyticModule):
     ''' v0.2
@@ -26,7 +26,7 @@ class BandwidthMonitor(AnalyticModule):
         '''
         # Task drones to capture *ALL* packets.
         parameters = {'callback':self.callbackURL, 'filter':{}}
-        uuid = self.taskDrone(plugin='killerbeewids.drone.plugins.capture.CapturePlugin', channel=11, parameters=parameters)
+        uuid = self.taskDrone(plugin='beekeeperwids.drone.plugins.capture.CapturePlugin', channel=11, parameters=parameters)
         if uuid == None:
         print("raise exception because failed to task drone")
         '''

@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 
 from scapy.all import Dot15d4FCS, Dot15d4CmdDisassociation, ZigbeeNWKCommandPayload
 
-from killerbeewids.wids.modules import AnalyticModule
-from killerbeewids.utils import dateToMicro
+from beekeeperwids.wids.modules import AnalyticModule
+from beekeeperwids.utils import dateToMicro
 
 class DisassociationStormMonitor(AnalyticModule):
     '''

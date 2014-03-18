@@ -2,8 +2,8 @@ import time, logging
 from multiprocessing import Process
 from datetime import datetime, timedelta
 
-from killerbeewids.wids.modules import AnalyticModule
-from killerbeewids.utils import dateToMicro
+from beekeeperwids.wids.modules import AnalyticModule
+from beekeeperwids.utils import dateToMicro
 
 #TODO rename module
 class TemplateMonitor(AnalyticModule):

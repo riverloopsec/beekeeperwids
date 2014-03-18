@@ -4,10 +4,10 @@ import time
 import traceback
 from datetime import datetime
 from multiprocessing import Process
-from killerbeewids.wids import RuleContainer
-from killerbeewids.wids.database import DatabaseHandler, Event
-from killerbeewids.wids.client import WIDSClient
-from killerbeewids.utils import KBLogUtil, dateToMicro
+from beekeeperwids.wids import RuleContainer
+from beekeeperwids.wids.database import DatabaseHandler, Event
+from beekeeperwids.wids.client import WIDSClient
+from beekeeperwids.utils import KBLogUtil, dateToMicro
 
 DEV_DEBUG=True
 

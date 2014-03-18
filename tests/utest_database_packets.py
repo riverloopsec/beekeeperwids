@@ -7,7 +7,7 @@ jvazquez 2013 riverloopsecurity.com
 
 import unittest
 
-from killerbeewids.wids.database import DatabaseHandler
+from beekeeperwids.wids.database import DatabaseHandler
 
 
 t1_uuid  = 'f88d3cac-7136-4a31-9153-a4b1605e1b90'

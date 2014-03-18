@@ -1,11 +1,11 @@
 ================
-killerbeewids
+beekeeperwids
 ================
 
 Introduction
 --------------
 
-killerbeewids is a Wireless Intrusion Detection System (WIDS) for
+beekeeperwids is a Wireless Intrusion Detection System (WIDS) for
 IEEE 802.15.4 (and can be extended for upper layers such as ZigBee, 6loWPAN, etc).
 
 It was developed by River Loop Security, LLC and released at Troopers14.
